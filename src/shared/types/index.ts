@@ -1,3 +1,37 @@
+export type UserRole = 'CONSUMER' | 'SHOPKEEPER' | 'ADMIN';
+
+export type KycStatus = 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export interface MerchantKyc {
+  age: number;
+  dob: string;
+  state: string; // Must be Maharashtra
+  city: string;
+  streetAddress: string;
+  govtIdType: 'AADHAAR' | 'PAN' | 'PASSPORT';
+  govtIdNumber: string;
+  fssaiLicense: string;
+  gstin?: string;
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  ifscCode: string;
+  verifiedAt?: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+  bio?: string;
+  storeId?: string;
+  authProvider?: 'EMAIL' | 'GOOGLE';
+  kycStatus?: KycStatus;
+  kycData?: MerchantKyc;
+}
+
 export type StoreCategory = 'BAKERY' | 'CAFE' | 'RESTAURANT' | 'CANTEEN' | 'GROCERY';
 
 export type SalesVelocity = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -76,9 +110,6 @@ export interface RiskEvaluationResult {
 
 export interface MerchantMetrics {
   revenueRecovered: number;
-  diversionWeightKg: number;
-  avoidedCo2eKg: number;
-  rescueConversionRatio: number;
   dealsPublished: number;
   dealsSoldOut: number;
   totalUnitsRescued: number;

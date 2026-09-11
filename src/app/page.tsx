@@ -5,8 +5,10 @@ import { Navbar } from '@/components/navbar';
 import { CategoryFilter } from '@/components/consumer/category-filter';
 import { DealCard } from '@/components/consumer/deal-card';
 import { DealModal } from '@/components/consumer/deal-modal';
-import { Deal } from '@/shared/types';
+import { AuthModal } from '@/components/auth/auth-modal';
+import { Deal, User } from '@/shared/types';
 import { loadDeals } from '@/lib/store';
+import { subscribeAuth } from '@/lib/auth-store';
 import { calculateHaversineDistance, POPULAR_LOCATIONS } from '@/lib/geo';
 import { 
   Sparkles, 
@@ -14,7 +16,8 @@ import {
   MapPin, 
   ShieldCheck, 
   Footprints,
-  Compass
+  Compass,
+  Lock
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -25,6 +28,17 @@ export default function HomePage() {
   const [userLocation, setUserLocation] = useState(POPULAR_LOCATIONS[0]);
   const [maxRadiusKm, setMaxRadiusKm] = useState(5.0);
   const [isLocating, setIsLocating] = useState(false);
+
+  // Auth state & Product gate modal
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeAuth((u) => {
+      setCurrentUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Load and subscribe to deals
   useEffect(() => {
@@ -57,6 +71,15 @@ export default function HomePage() {
       },
       { timeout: 8000 }
     );
+  };
+
+  const handleDealClick = (deal: Deal) => {
+    if (!currentUser) {
+      // Intercept guest action with Auth Modal
+      setShowAuthModal(true);
+    } else {
+      setSelectedDeal(deal);
+    }
   };
 
   const { filteredDeals, categoryCounts } = useMemo(() => {
@@ -169,6 +192,27 @@ export default function HomePage() {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
+        {/* Guest Auth Notice Banner if not logged in */}
+        {!currentUser && (
+          <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white rounded-3xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 border border-emerald-700/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Guest Browsing Active</p>
+                <p className="text-xs text-emerald-200">You can explore all nearby deals. Click on any item to log in via Gmail &amp; claim walk-in redemptions!</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-4 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-950 font-extrabold text-xs shrink-0 shadow-sm transition-colors"
+            >
+              Sign In / Register Now ➔
+            </button>
+          </div>
+        )}
+
         {/* Search & Category Filter Controls */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -216,12 +260,12 @@ export default function HomePage() {
               <DealCard
                 key={deal.id}
                 deal={deal}
-                onOpenDetails={(d) => setSelectedDeal(d)}
+                onOpenDetails={(d) => handleDealClick(d)}
               />
             ))}
           </div>
         ) : (
-          /* Empty State / Out of Radius Fallback (SRS EC-06) */
+          /* Empty State / Out of Radius Fallback */
           <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-zinc-200 shadow-sm max-w-lg mx-auto space-y-4 my-6">
             <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
               🌿
@@ -269,13 +313,27 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Deal Details Modal */}
+      {/* Deal Details Modal (When Authenticated) */}
       {selectedDeal && (
         <DealModal
           deal={selectedDeal}
           onClose={() => setSelectedDeal(null)}
         />
       )}
+
+      {/* Guest Interception Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialRole="CONSUMER"
+        customPrompt="Sign in or register via Gmail to view deal details, live countdowns & turn-by-turn map directions!"
+        onSuccess={() => {
+          // If user was attempting to click a deal, open it after successful login
+          if (selectedDeal) {
+            // Already set
+          }
+        }}
+      />
     </div>
   );
 }
