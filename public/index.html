@@ -234,72 +234,158 @@
         </div>
       </div>
 
-      <form onsubmit="handlePublishDeal(event)" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-6 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
-          <h2 class="font-bold text-base text-zinc-900 border-b pb-2">Fast Surplus Cataloging (FR-INV)</h2>
+      <form onsubmit="handleReviewDeal(event)" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Column: Product & Expiry Inputs -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
+          <h2 class="font-bold text-base text-zinc-900 border-b pb-2 flex items-center justify-between">
+            <span>1. Product & Expiry Information</span>
+            <span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">FR-INV</span>
+          </h2>
+          
           <div>
-            <label class="block text-xs font-bold text-zinc-700 mb-1">Product Name</label>
-            <input id="form-name" type="text" required value="Fresh Organic Malai Paneer (500g)" class="w-full px-3.5 py-2 text-sm border rounded-xl" />
+            <label class="block text-xs font-bold text-zinc-700 mb-1">Product Name *</label>
+            <input id="form-name" type="text" required value="Fresh Organic Malai Paneer (500g)" class="w-full px-3.5 py-2 text-sm border rounded-xl font-semibold" />
           </div>
+
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-bold text-zinc-700 mb-1">Category</label>
-              <select id="form-category" class="w-full px-3 py-2 text-sm border rounded-xl bg-zinc-50">
-                <option value="DAIRY">Dairy & Farm 🥛</option>
-                <option value="BAKERY">Bakery 🥐</option>
-                <option value="CAFE">Café ☕</option>
-                <option value="RESTAURANT">Restaurant 🍕</option>
-                <option value="CANTEEN">Canteen 🍱</option>
-                <option value="GROCERY">Grocery 🥗</option>
+              <label class="block text-xs font-bold text-zinc-700 mb-1">Product Category *</label>
+              <select id="form-category" onchange="handleCategorySelect(this.value)" class="w-full px-3 py-2 text-sm border rounded-xl bg-zinc-50 font-medium">
+                <option value="Dairy" selected>🥛 Dairy</option>
+                <option value="Bakery">🥐 Bakery</option>
+                <option value="Prepared Food">🍱 Prepared Food</option>
+                <option value="Snacks">🥨 Snacks</option>
+                <option value="Beverages">🧃 Beverages</option>
+                <option value="Other">📦 Other</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold text-zinc-700 mb-1">Footfall Velocity</label>
-              <select id="form-velocity" onchange="recalculateSlider()" class="w-full px-3 py-2 text-sm border rounded-xl bg-zinc-50 font-semibold">
-                <option value="LOW">LOW (< 2 units/hr)</option>
-                <option value="MEDIUM" selected>MEDIUM (2-5 units/hr)</option>
-                <option value="HIGH">HIGH (> 5 units/hr)</option>
+              <label class="block text-xs font-bold text-zinc-700 mb-1">Unit of Measurement *</label>
+              <select id="form-unit" class="w-full px-3 py-2 text-sm border rounded-xl bg-zinc-50 font-medium">
+                <option value="packs" selected>packs</option>
+                <option value="pieces">pieces</option>
+                <option value="kg">kg</option>
+                <option value="litres">litres</option>
+                <option value="plates">plates</option>
+                <option value="portions">portions</option>
+                <option value="boxes">boxes</option>
               </select>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-bold text-zinc-700 mb-1">Units (Q)</label>
-              <input id="form-units" type="number" min="1" max="500" value="12" oninput="recalculateSlider()" class="w-full px-3 py-2 text-sm font-mono border rounded-xl font-bold" />
+
+          <div>
+            <label class="block text-xs font-bold text-zinc-700 mb-1">Product Description</label>
+            <input id="form-desc" type="text" value="Vacuum packed pure buffalo milk malai paneer made this morning." class="w-full px-3.5 py-2 text-xs border rounded-xl" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-zinc-700 mb-1">Product Image URL</label>
+            <input id="form-img" type="url" value="https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80" class="w-full px-3.5 py-2 text-xs border rounded-xl font-mono" />
+          </div>
+
+          <!-- Time & Expiry Section with 3-tier warning system -->
+          <div class="pt-3 border-t border-zinc-100 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-zinc-900 uppercase">Time & Expiry Horizon</span>
+              <span id="window-status-pill" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                🟢 Safe (> 3h)
+              </span>
             </div>
+
+            <div id="selling-time-banner" class="p-2.5 rounded-xl border bg-emerald-50 border-emerald-200 text-emerald-900 text-xs font-bold flex items-center justify-between">
+              <span id="selling-time-label">Time Remaining: 2h 15m</span>
+              <span class="text-[10px] uppercase font-mono">Real-time Warning System</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-zinc-600 mb-1">Preparation Time</label>
+                <input id="form-prep-time" type="time" value="08:00" class="w-full px-3 py-1.5 text-xs border rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-zinc-600 mb-1">Best Before Time * (Deadline)</label>
+                <input id="form-bb-time" type="time" value="20:00" onchange="updateCustomDeadline()" class="w-full px-3 py-1.5 text-xs border rounded-xl font-bold bg-emerald-50/40 border-emerald-300" />
+              </div>
+            </div>
+
             <div>
-              <label class="block text-xs font-bold text-zinc-700 mb-1">Base Price (₹)</label>
-              <input id="form-price" type="number" min="5" max="50000" value="220" oninput="recalculateSlider(true)" class="w-full px-3 py-2 text-sm font-mono border rounded-xl font-bold" />
+              <label class="block text-xs font-bold text-zinc-700 mb-1">Quick Horizon Presets</label>
+              <div class="grid grid-cols-4 gap-2">
+                <button type="button" onclick="setHorizon(30)" class="horizon-btn py-1.5 rounded-xl text-xs font-bold border bg-zinc-50 text-zinc-700">30m 🔴</button>
+                <button type="button" onclick="setHorizon(45)" class="horizon-btn py-1.5 rounded-xl text-xs font-bold border bg-zinc-50 text-zinc-700">45m 🔴</button>
+                <button type="button" onclick="setHorizon(90)" class="horizon-btn py-1.5 rounded-xl text-xs font-bold border bg-amber-50 text-amber-800 border-amber-300">1.5h 🟡</button>
+                <button type="button" onclick="setHorizon(240)" class="horizon-btn py-1.5 rounded-xl text-xs font-bold border bg-emerald-600 text-white shadow-sm">4h 🟢</button>
+              </div>
             </div>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-zinc-700 mb-1">Selling Horizon (<span id="form-horizon-label">45 mins remaining</span>)</label>
-            <div class="grid grid-cols-4 gap-2">
-              <button type="button" onclick="setHorizon(30)" class="horizon-btn py-2 rounded-xl text-xs font-bold border bg-zinc-50 text-zinc-700">30m</button>
-              <button type="button" onclick="setHorizon(45)" class="horizon-btn py-2 rounded-xl text-xs font-bold border bg-emerald-600 text-white shadow-sm">45m</button>
-              <button type="button" onclick="setHorizon(60)" class="horizon-btn py-2 rounded-xl text-xs font-bold border bg-zinc-50 text-zinc-700">1 hr</button>
-              <button type="button" onclick="setHorizon(120)" class="horizon-btn py-2 rounded-xl text-xs font-bold border bg-zinc-50 text-zinc-700">2 hr</button>
+
+          <!-- Inventory & Velocity Section -->
+          <div class="pt-3 border-t border-zinc-100 space-y-3">
+            <span class="text-xs font-bold text-zinc-900 uppercase block">Inventory & Velocity Tracking</span>
+            
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-zinc-700 mb-1">Quantity Available *</label>
+                <input id="form-units" type="number" min="1" max="500" value="12" oninput="recalculateSlider()" class="w-full px-3 py-2 text-sm font-mono border rounded-xl font-bold" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-zinc-700 mb-1">Units Sold Today</label>
+                <input id="form-sold-today" type="number" min="0" max="500" value="8" class="w-full px-3 py-2 text-sm font-mono border rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-zinc-700 mb-1">Expected Demand</label>
+                <input id="form-expected-demand" type="number" min="1" max="500" value="16" class="w-full px-3 py-2 text-sm font-mono border rounded-xl" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-zinc-700 mb-1">Sales Velocity *</label>
+                <select id="form-velocity" onchange="recalculateSlider()" class="w-full px-3 py-2 text-sm border rounded-xl bg-zinc-50 font-semibold">
+                  <option value="LOW">LOW (< 2 units/hr)</option>
+                  <option value="MEDIUM" selected>MEDIUM (2-5 units/hr)</option>
+                  <option value="HIGH">HIGH (> 5 units/hr)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-zinc-700 mb-1">Base Price (₹) *</label>
+                <input id="form-price" type="number" min="5" max="50000" value="220" oninput="recalculateSlider(true)" class="w-full px-3 py-2 text-sm font-mono border rounded-xl font-bold" />
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="lg:col-span-6 space-y-4 flex flex-col justify-between">
+        <!-- Right Column: Risk Engine, 60 FPS Slider, Review & Publish -->
+        <div class="lg:col-span-5 space-y-4 flex flex-col justify-between">
           <div class="space-y-4">
+            <!-- Explainable Risk Engine Card -->
             <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm space-y-3">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-sm text-zinc-900 flex items-center gap-1.5"><i data-lucide="flame" class="w-4 h-4 text-amber-500"></i> Risk Engine</span>
-                <span id="risk-score-badge" class="text-xs font-black px-2.5 py-0.5 rounded-full border bg-rose-100 text-rose-800">74/100 • HIGH RISK</span>
+                <span class="font-bold text-sm text-zinc-900 flex items-center gap-1.5"><i data-lucide="flame" class="w-4 h-4 text-amber-500"></i> Waste Risk Engine</span>
+                <span id="risk-score-badge" class="text-xs font-black px-2.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-800">28/100 • LOW RISK</span>
               </div>
               <div class="h-2.5 w-full bg-zinc-100 rounded-full overflow-hidden p-0.5 border">
-                <div id="risk-progress-bar" class="h-full rounded-full bg-rose-600" style="width: 74%"></div>
+                <div id="risk-progress-bar" class="h-full rounded-full bg-emerald-500" style="width: 28%"></div>
               </div>
-              <p id="risk-explanation-text" class="text-xs text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border">12 units remain with 45m left under MEDIUM footfall.</p>
-              <div id="risk-warning-box" class="hidden p-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-lg flex items-center gap-1">
-                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+              <p id="risk-explanation-text" class="text-xs text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border">12 units remain with 4h 0m left under MEDIUM footfall.</p>
+              
+              <!-- Concrete Reasons Bullet List -->
+              <div id="risk-reasons-list" class="p-3 bg-zinc-50 border rounded-xl space-y-1 text-xs text-zinc-600">
+                <span class="font-bold text-zinc-800 block text-[11px] mb-1">Explainability Breakdown:</span>
+                <ul id="reasons-ul" class="list-disc pl-4 space-y-0.5">
+                  <li>12 units remaining in inventory</li>
+                  <li>Moderate sales velocity (2-5 units/hr)</li>
+                  <li>Safe selling horizon remaining</li>
+                </ul>
+              </div>
+
+              <div id="risk-warning-box" class="hidden p-2.5 bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold rounded-lg flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0"></i>
                 <span id="risk-warning-text"></span>
               </div>
             </div>
 
+            <!-- 60 FPS Interactive Price Slider -->
             <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm space-y-3">
               <div class="flex items-center justify-between">
                 <span class="font-bold text-sm text-zinc-900 flex items-center gap-1.5"><i data-lucide="sliders" class="w-4 h-4 text-emerald-600"></i> 60 FPS Price Slider</span>
@@ -322,9 +408,9 @@
             </div>
           </div>
 
-          <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-lg flex items-center justify-center gap-2">
-            <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
-            <span id="publish-btn-text">PUBLISH SURPLUS DEAL (₹110) ➔</span>
+          <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-lg flex items-center justify-center gap-2 transition-all">
+            <i data-lucide="eye" class="w-4 h-4"></i>
+            <span id="publish-btn-text">REVIEW &amp; PUBLISH DEAL (₹110) ➔</span>
           </button>
         </div>
       </form>
@@ -356,6 +442,49 @@
   </section>
 
   <!-- MODALS -->
+  <!-- 1. Pre-Publication Confirmation Modal -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border p-6 space-y-5">
+      <div class="flex justify-between items-start border-b pb-3">
+        <div>
+          <span class="text-xs font-bold uppercase text-emerald-700">Pre-Publication Review</span>
+          <h3 class="text-lg font-black text-zinc-900">Confirm Surplus Food Listing</h3>
+        </div>
+        <button onclick="closeConfirmModal()" class="text-zinc-400 hover:text-zinc-600 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="flex gap-3.5 items-start bg-zinc-50 p-3.5 rounded-2xl border">
+        <img id="conf-img" src="" class="w-16 h-16 rounded-xl object-cover border" />
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <span id="conf-cat-badge" class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-zinc-900 text-white"></span>
+            <span id="conf-units-label" class="text-xs font-mono text-zinc-600"></span>
+          </div>
+          <h4 id="conf-title" class="font-extrabold text-sm text-zinc-900"></h4>
+          <p id="conf-desc" class="text-[11px] text-zinc-500 line-clamp-1"></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-2 text-center">
+        <div class="bg-zinc-50 p-2 rounded-xl border"><span class="text-[10px] uppercase font-bold text-zinc-400 block">Original</span><span id="conf-orig-price" class="text-xs font-bold line-through text-zinc-500"></span></div>
+        <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-200"><span class="text-[10px] uppercase font-bold text-emerald-700 block">Clearance</span><span id="conf-pub-price" class="text-sm font-black text-emerald-800"></span></div>
+        <div class="bg-rose-50 p-2 rounded-xl border border-rose-200"><span class="text-[10px] uppercase font-bold text-rose-700 block">Discount</span><span id="conf-disc-badge" class="text-sm font-black text-rose-700"></span></div>
+        <div class="bg-zinc-50 p-2 rounded-xl border"><span class="text-[10px] uppercase font-bold text-zinc-400 block">Recovery</span><span id="conf-recovery" class="text-sm font-black text-zinc-900"></span></div>
+      </div>
+
+      <div class="p-3 bg-zinc-50 border rounded-2xl space-y-1.5 text-xs">
+        <div class="flex justify-between"><span class="text-zinc-500">Selling Window:</span><span id="conf-window" class="font-bold text-zinc-800"></span></div>
+        <div class="flex justify-between"><span class="text-zinc-500">Waste Risk Score:</span><span id="conf-risk" class="font-extrabold text-zinc-900"></span></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <button type="button" onclick="closeConfirmModal()" class="py-2.5 px-4 rounded-xl border border-zinc-300 font-bold text-xs text-zinc-700 hover:bg-zinc-100">[ EDIT DETAILS ]</button>
+        <button type="button" onclick="confirmPublishDeal()" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md">[ PUBLISH DEAL NOW ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Consumer Deal Details Modal -->
   <div id="deal-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3">
     <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border p-6 space-y-4">
       <div class="flex justify-between items-start">
@@ -401,20 +530,29 @@
 
   <!-- JAVASCRIPT ENGINE -->
   <script>
+    const CAT_IMAGES = {
+      'Dairy': 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80',
+      'Bakery': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80',
+      'Prepared Food': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+      'Snacks': 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80',
+      'Beverages': 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80',
+      'Other': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&auto=format&fit=crop&q=80',
+    };
+
     const INITIAL_DEALS = [
-      { id: '1', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'DAIRY', lat: 18.5220, lng: 73.8540, productName: 'Fresh Organic Malai Paneer (500g)', initialUnits: 12, remainingUnits: 10, soldUnits: 2, originalPrice: 220, publishedPrice: 110, deadline: new Date(Date.now() + 45 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Chilled Batch', imageUrl: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80' },
-      { id: '2', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'DAIRY', lat: 18.5220, lng: 73.8540, productName: 'Pasteurized Whole Cow Milk (1L Pouch)', initialUnits: 20, remainingUnits: 16, soldUnits: 4, originalPrice: 70, publishedPrice: 45, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80' },
-      { id: '3', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'DAIRY', lat: 18.5220, lng: 73.8540, productName: 'Artisanal Set Dahi / Greek Yogurt (400g)', initialUnits: 10, remainingUnits: 8, soldUnits: 2, originalPrice: 120, publishedPrice: 65, deadline: new Date(Date.now() + 90 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Sealed Fresh', imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop&q=80' },
-      { id: '4', storeName: 'ABC Gourmet Bakery', category: 'BAKERY', lat: 18.5255, lng: 73.8595, productName: 'Artisan Sourdough Loaf (Scenario 1)', initialUnits: 15, remainingUnits: 15, soldUnits: 0, originalPrice: 120, publishedPrice: 60, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=600&auto=format&fit=crop&q=80' },
-      { id: '5', storeName: 'ABC Gourmet Bakery', category: 'BAKERY', lat: 18.5255, lng: 73.8595, productName: 'Fresh Veggie Club (Scenario 2)', initialUnits: 18, remainingUnits: 17, soldUnits: 1, originalPrice: 60, publishedPrice: 40, deadline: new Date(Date.now() + 50 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80' },
-      { id: '6', storeName: 'XYZ Campus Pizzeria', category: 'RESTAURANT', lat: 18.5298, lng: 73.8652, productName: 'Margherita Pizza Slice Duo', initialUnits: 8, remainingUnits: 5, soldUnits: 3, originalPrice: 150, publishedPrice: 90, deadline: new Date(Date.now() + 130 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Warm Batch', imageUrl: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=600&auto=format&fit=crop&q=80' },
-      { id: '7', storeName: 'The Green Canteen', category: 'CANTEEN', lat: 18.5160, lng: 73.8505, productName: 'Paneer Makhani Rice Bowl', initialUnits: 12, remainingUnits: 6, soldUnits: 6, originalPrice: 110, publishedPrice: 70, deadline: new Date(Date.now() + 40 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Kitchen Fresh', imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80' },
-      { id: '8', storeName: 'Bean & Brew Coffee', category: 'CAFE', lat: 18.5340, lng: 73.8610, productName: 'Blueberry & Chocochip Muffin Pair', initialUnits: 10, remainingUnits: 7, soldUnits: 3, originalPrice: 140, publishedPrice: 80, deadline: new Date(Date.now() + 110 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=600&auto=format&fit=crop&q=80' }
+      { id: '1', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'packs', lat: 18.5220, lng: 73.8540, productName: 'Fresh Organic Malai Paneer (500g)', initialUnits: 12, remainingUnits: 10, soldUnits: 2, originalPrice: 220, publishedPrice: 110, deadline: new Date(Date.now() + 45 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Chilled Batch', imageUrl: CAT_IMAGES['Dairy'] },
+      { id: '2', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'litres', lat: 18.5220, lng: 73.8540, productName: 'Pasteurized Whole Cow Milk (1L Pouch)', initialUnits: 20, remainingUnits: 16, soldUnits: 4, originalPrice: 70, publishedPrice: 45, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80' },
+      { id: '3', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'packs', lat: 18.5220, lng: 73.8540, productName: 'Artisanal Set Dahi / Greek Yogurt (400g)', initialUnits: 10, remainingUnits: 8, soldUnits: 2, originalPrice: 120, publishedPrice: 65, deadline: new Date(Date.now() + 90 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Sealed Fresh', imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop&q=80' },
+      { id: '4', storeName: 'ABC Gourmet Bakery', category: 'Bakery', unit: 'pieces', lat: 18.5255, lng: 73.8595, productName: 'Artisan Sourdough Loaf (Scenario 1)', initialUnits: 15, remainingUnits: 15, soldUnits: 0, originalPrice: 120, publishedPrice: 60, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=600&auto=format&fit=crop&q=80' },
+      { id: '5', storeName: 'ABC Gourmet Bakery', category: 'Bakery', unit: 'pieces', lat: 18.5255, lng: 73.8595, productName: 'Fresh Veggie Club (Scenario 2)', initialUnits: 18, remainingUnits: 17, soldUnits: 1, originalPrice: 60, publishedPrice: 40, deadline: new Date(Date.now() + 50 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80' },
+      { id: '6', storeName: 'XYZ Campus Pizzeria', category: 'Prepared Food', unit: 'portions', lat: 18.5298, lng: 73.8652, productName: 'Margherita Pizza Slice Duo', initialUnits: 8, remainingUnits: 5, soldUnits: 3, originalPrice: 150, publishedPrice: 90, deadline: new Date(Date.now() + 130 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Warm Batch', imageUrl: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=600&auto=format&fit=crop&q=80' },
+      { id: '7', storeName: 'The Green Canteen', category: 'Prepared Food', unit: 'boxes', lat: 18.5160, lng: 73.8505, productName: 'Paneer Makhani Rice Bowl', initialUnits: 12, remainingUnits: 6, soldUnits: 6, originalPrice: 110, publishedPrice: 70, deadline: new Date(Date.now() + 40 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Kitchen Fresh', imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80' },
+      { id: '8', storeName: 'Bean & Brew Coffee', category: 'Beverages', unit: 'portions', lat: 18.5340, lng: 73.8610, productName: 'Cold Brew Nitro Latte & Muffin Pair', initialUnits: 10, remainingUnits: 7, soldUnits: 3, originalPrice: 140, publishedPrice: 80, deadline: new Date(Date.now() + 110 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80' }
     ];
 
     let state = {
       deals: JSON.parse(localStorage.getItem('savebite_deals')) || INITIAL_DEALS,
-      userLat: 18.5204, userLng: 73.8567, radiusKm: 5.0, selectedCategory: 'ALL', formHorizonMinutes: 45
+      userLat: 18.5204, userLng: 73.8567, radiusKm: 5.0, selectedCategory: 'ALL', formHorizonMinutes: 240
     };
 
     function saveState() { localStorage.setItem('savebite_deals', JSON.stringify(state.deals)); }
@@ -435,18 +573,43 @@
     function formatDistance(m) { return m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`; }
 
     function computeWasteRisk(qty, orig, sel, mins, vel) {
-      let sTime = mins <= 60 ? 90 : mins <= 120 ? 65 : Math.min(100, Math.max(0, Math.round((1 - mins / 240) * 100)));
+      let sTime = mins <= 60 ? 90 : mins <= 120 ? 65 : mins <= 180 ? 45 : Math.min(100, Math.max(0, Math.round((1 - mins / 360) * 100)));
       const velRates = { LOW: 1.5, MEDIUM: 3.5, HIGH: 6.0 };
       const sStock = Math.min(100, Math.max(0, Math.round((qty / ((velRates[vel] || 2.5) * Math.max(0.5, mins / 60))) * 50)));
       const sVel = { LOW: 90, MEDIUM: 50, HIGH: 15 }[vel] || 50;
       const base = (0.40 * sTime) + (0.35 * sStock) + (0.25 * sVel);
-      let disc = base >= 70 ? 0.50 : base >= 40 ? 0.333 : 0.20;
+      let disc = base >= 75 ? 0.50 : base >= 50 ? 0.333 : base >= 35 ? 0.25 : 0.20;
       const recPrice = Math.max(Math.round(orig * 0.20), Math.round(orig * (1 - disc)));
       const credit = 0.25 * (Math.max(0, (orig - sel) / orig) * 100);
       const score = Math.min(100, Math.max(0, Math.round(base - credit)));
-      const explanation = `${qty} units remain with ${mins}m left under ${vel} footfall.`;
-      let warning = sel > recPrice ? `Selected price (₹${sel}) > suggested (₹${recPrice}). Risk increases.` : null;
-      return { score, level: score >= 70 ? 'HIGH' : score >= 40 ? 'MEDIUM' : 'LOW', recPrice, recDiscountPct: Math.round(disc * 100), explanation, warning };
+      
+      const hours = Math.floor(mins / 60);
+      const m = mins % 60;
+      const timeRemainingFormatted = hours > 0 && m > 0 ? `${hours}h ${m}m` : hours > 0 ? `${hours}h` : `${m}m`;
+      const windowStatus = mins > 180 ? 'safe' : mins >= 60 ? 'warning' : 'critical';
+
+      const reasons = [];
+      reasons.push(`${qty} units remaining in inventory`);
+      reasons.push(vel === 'LOW' ? 'Low sales velocity (< 2 units/hr)' : vel === 'MEDIUM' ? 'Moderate sales velocity (2–5 units/hr)' : 'High sales velocity (> 5 units/hr)');
+      reasons.push(mins < 60 ? `Only ${timeRemainingFormatted} remaining before deadline` : `${timeRemainingFormatted} remaining in selling horizon`);
+      if (sel > recPrice) reasons.push(`Price (₹${sel}) is higher than suggested (₹${recPrice})`);
+      else if (sel < recPrice) reasons.push(`Deep clearance price (₹${sel}) accelerates sell-through`);
+      else reasons.push(`Calibrated to optimal clearance price (₹${recPrice})`);
+
+      const explanation = `${qty} units remain with ${timeRemainingFormatted} left under ${vel} footfall.`;
+      let warning = sel > recPrice ? `Selected price (₹${sel}) is higher than suggested (₹${recPrice}). Risk score increases because higher price reduces clearance probability.` : null;
+      
+      return {
+        score,
+        level: score >= 80 ? 'CRITICAL' : score >= 65 ? 'HIGH' : score >= 40 ? 'MEDIUM' : 'LOW',
+        recPrice,
+        recDiscountPct: Math.round(disc * 100),
+        explanation,
+        reasons,
+        warning,
+        timeRemainingFormatted,
+        windowStatus
+      };
     }
 
     function switchTab(tab) {
@@ -469,7 +632,7 @@
         .filter(d => d.status === 'ACTIVE' && d.remainingUnits > 0 && new Date(d.deadline).getTime() > now)
         .map(d => ({ ...d, dist: haversineDistance(state.userLat, state.userLng, d.lat, d.lng) }))
         .filter(d => d.dist <= state.radiusKm * 1000)
-        .filter(d => state.selectedCategory === 'ALL' || d.category === state.selectedCategory)
+        .filter(d => state.selectedCategory === 'ALL' || d.category.toUpperCase() === state.selectedCategory.toUpperCase())
         .filter(d => !q || d.productName.toLowerCase().includes(q) || d.storeName.toLowerCase().includes(q))
         .sort((a, b) => a.dist - b.dist);
 
@@ -486,6 +649,7 @@
             <div class="relative h-44 bg-zinc-100">
               <img src="${d.imageUrl}" class="w-full h-full object-cover" />
               <div class="absolute top-3 right-3 bg-rose-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">${disc}% OFF</div>
+              <div class="absolute top-3 left-3 bg-zinc-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded">${d.category}</div>
               <div class="absolute bottom-2.5 left-3 bg-white/95 text-xs font-semibold px-2 py-0.5 rounded shadow">📍 ${formatDistance(d.dist)}</div>
             </div>
             <div class="p-4 flex-1 flex flex-col justify-between">
@@ -498,7 +662,7 @@
                 </div>
               </div>
               <div class="mt-3 pt-2 border-t flex flex-col gap-2">
-                <div class="flex justify-between text-xs text-zinc-600"><span>⏳ ${diff}m left</span><span>📦 ${d.remainingUnits} left</span></div>
+                <div class="flex justify-between text-xs text-zinc-600"><span>⏳ ${diff}m left</span><span>📦 ${d.remainingUnits} ${d.unit || 'units'} left</span></div>
                 <button onclick="event.stopPropagation(); window.open('${gmaps}', '_blank')" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl">GET DIRECTIONS ➔</button>
               </div>
             </div>
@@ -526,7 +690,7 @@
             <img src="${d.imageUrl}" class="w-10 h-10 rounded-lg object-cover" />
             <div>
               <h4 class="font-bold text-xs">${d.productName}</h4>
-              <p class="text-[11px] text-zinc-500">₹${d.publishedPrice} • Remaining: ${d.remainingUnits} • Sold: ${d.soldUnits}</p>
+              <p class="text-[11px] text-zinc-500">₹${d.publishedPrice} • Remaining: ${d.remainingUnits} ${d.unit || 'units'} • Sold: ${d.soldUnits}</p>
             </div>
           </div>
           ${d.remainingUnits > 0 ? `
@@ -577,7 +741,31 @@
       const res = computeWasteRisk(units, orig, current, mins, vel);
       document.getElementById('risk-score-badge').innerText = `${res.score}/100 • ${res.level} RISK`;
       document.getElementById('risk-progress-bar').style.width = `${res.score}%`;
+      document.getElementById('risk-progress-bar').className = `h-full rounded-full ${res.score >= 80 ? 'bg-rose-600' : res.score >= 65 ? 'bg-orange-500' : res.score >= 40 ? 'bg-amber-500' : 'bg-emerald-500'}`;
       document.getElementById('risk-explanation-text').innerText = res.explanation;
+
+      // Update 3-tier window pill
+      const wp = document.getElementById('window-status-pill');
+      const sb = document.getElementById('selling-time-banner');
+      const sl = document.getElementById('selling-time-label');
+      sl.innerText = `Time Remaining: ${res.timeRemainingFormatted}`;
+      if (res.windowStatus === 'safe') {
+        wp.innerText = '🟢 Safe (> 3h)';
+        wp.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200';
+        sb.className = 'p-2.5 rounded-xl border bg-emerald-50 border-emerald-200 text-emerald-900 text-xs font-bold flex items-center justify-between';
+      } else if (res.windowStatus === 'warning') {
+        wp.innerText = '🟡 Approaching (1h–3h)';
+        wp.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200';
+        sb.className = 'p-2.5 rounded-xl border bg-amber-50 border-amber-200 text-amber-900 text-xs font-bold flex items-center justify-between';
+      } else {
+        wp.innerText = '🔴 Critical (< 1h)';
+        wp.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200';
+        sb.className = 'p-2.5 rounded-xl border bg-rose-50 border-rose-200 text-rose-900 text-xs font-bold flex items-center justify-between';
+      }
+
+      // Reasons list
+      const ul = document.getElementById('reasons-ul');
+      ul.innerHTML = res.reasons.map(r => `<li>${r}</li>`).join('');
 
       const wb = document.getElementById('risk-warning-box');
       if (res.warning) { wb.classList.remove('hidden'); document.getElementById('risk-warning-text').innerText = res.warning; }
@@ -590,7 +778,7 @@
       document.getElementById('slider-ceil-label').innerText = `Ceiling: ₹${orig}`;
       document.getElementById('slider-sugg-label').innerText = `Suggested: ₹${res.recPrice}`;
       document.getElementById('snap-btn-label').innerText = `Snap to Suggested (₹${res.recPrice})`;
-      document.getElementById('publish-btn-text').innerText = `PUBLISH SURPLUS DEAL (₹${current}) ➔`;
+      document.getElementById('publish-btn-text').innerText = `REVIEW & PUBLISH DEAL (₹${current}) ➔`;
     }
 
     function handleSliderMove(v) { document.getElementById('slider-val-display').innerText = `₹${v}`; recalculateSlider(false); }
@@ -598,24 +786,43 @@
 
     function setHorizon(mins) {
       state.formHorizonMinutes = mins;
-      document.getElementById('form-horizon-label').innerText = `${mins} mins remaining`;
       recalculateSlider(false);
+    }
+
+    function handleCategorySelect(cat) {
+      document.getElementById('form-img').value = CAT_IMAGES[cat] || CAT_IMAGES['Other'];
+      const unitEl = document.getElementById('form-unit');
+      if (cat === 'Dairy') unitEl.value = 'packs';
+      else if (cat === 'Bakery') unitEl.value = 'pieces';
+      else if (cat === 'Prepared Food') unitEl.value = 'boxes';
+      else if (cat === 'Beverages') unitEl.value = 'portions';
+      else unitEl.value = 'packs';
     }
 
     function loadDairyScenario() {
       document.getElementById('form-name').value = 'Fresh Organic Malai Paneer (500g)';
-      document.getElementById('form-category').value = 'DAIRY';
+      document.getElementById('form-category').value = 'Dairy';
+      document.getElementById('form-unit').value = 'packs';
+      document.getElementById('form-desc').value = 'Farm-fresh cottage cheese made this morning.';
+      document.getElementById('form-img').value = CAT_IMAGES['Dairy'];
       document.getElementById('form-units').value = '12';
+      document.getElementById('form-sold-today').value = '8';
+      document.getElementById('form-expected-demand').value = '16';
       document.getElementById('form-price').value = '220';
       document.getElementById('form-velocity').value = 'MEDIUM';
-      state.formHorizonMinutes = 45;
+      state.formHorizonMinutes = 90;
       recalculateSlider(true);
     }
 
     function loadScenario1() {
-      document.getElementById('form-name').value = 'Sourdough Loaf';
-      document.getElementById('form-category').value = 'BAKERY';
+      document.getElementById('form-name').value = 'Artisanal Sourdough Country Loaf';
+      document.getElementById('form-category').value = 'Bakery';
+      document.getElementById('form-unit').value = 'pieces';
+      document.getElementById('form-desc').value = 'Slow-fermented artisan crusty loaf.';
+      document.getElementById('form-img').value = CAT_IMAGES['Bakery'];
       document.getElementById('form-units').value = '15';
+      document.getElementById('form-sold-today').value = '5';
+      document.getElementById('form-expected-demand').value = '12';
       document.getElementById('form-price').value = '120';
       document.getElementById('form-velocity').value = 'LOW';
       state.formHorizonMinutes = 60;
@@ -623,9 +830,14 @@
     }
 
     function loadScenario2() {
-      document.getElementById('form-name').value = 'Veggie Club Sandwich';
-      document.getElementById('form-category').value = 'BAKERY';
+      document.getElementById('form-name').value = 'Veggie Club Sandwich Duo';
+      document.getElementById('form-category').value = 'Bakery';
+      document.getElementById('form-unit').value = 'pieces';
+      document.getElementById('form-desc').value = 'Fresh grilled sandwich with crispy veggies.';
+      document.getElementById('form-img').value = CAT_IMAGES['Bakery'];
       document.getElementById('form-units').value = '18';
+      document.getElementById('form-sold-today').value = '10';
+      document.getElementById('form-expected-demand').value = '20';
       document.getElementById('form-price').value = '60';
       document.getElementById('form-velocity').value = 'LOW';
       state.formHorizonMinutes = 50;
@@ -634,22 +846,74 @@
       recalculateSlider(false);
     }
 
-    function handlePublishDeal(e) {
+    function handleReviewDeal(e) {
       e.preventDefault();
       const name = document.getElementById('form-name').value;
       const cat = document.getElementById('form-category').value;
+      const unit = document.getElementById('form-unit').value;
+      const desc = document.getElementById('form-desc').value;
+      const img = document.getElementById('form-img').value;
       const units = parseInt(document.getElementById('form-units').value);
       const orig = parseInt(document.getElementById('form-price').value);
       const pub = parseInt(document.getElementById('price-range-slider').value);
       const vel = document.getElementById('form-velocity').value;
+      const disc = Math.round(((orig - pub) / orig) * 100);
+
+      const res = computeWasteRisk(units, orig, pub, state.formHorizonMinutes, vel);
+
+      document.getElementById('conf-img').src = img || CAT_IMAGES[cat];
+      document.getElementById('conf-cat-badge').innerText = cat;
+      document.getElementById('conf-units-label').innerText = `${units} ${unit} available`;
+      document.getElementById('conf-title').innerText = name;
+      document.getElementById('conf-desc').innerText = desc;
+      document.getElementById('conf-orig-price').innerText = `₹${orig}`;
+      document.getElementById('conf-pub-price').innerText = `₹${pub}`;
+      document.getElementById('conf-disc-badge').innerText = `-${disc}%`;
+      document.getElementById('conf-recovery').innerText = `₹${pub * units}`;
+      document.getElementById('conf-window').innerText = `${res.timeRemainingFormatted} remaining (${res.windowStatus.toUpperCase()})`;
+      document.getElementById('conf-risk').innerText = `${res.score}/100 (${res.level} Risk)`;
+
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    function confirmPublishDeal() {
+      const name = document.getElementById('form-name').value;
+      const cat = document.getElementById('form-category').value;
+      const unit = document.getElementById('form-unit').value;
+      const desc = document.getElementById('form-desc').value;
+      const img = document.getElementById('form-img').value;
+      const units = parseInt(document.getElementById('form-units').value);
+      const orig = parseInt(document.getElementById('form-price').value);
+      const pub = parseInt(document.getElementById('price-range-slider').value);
 
       state.deals.unshift({
-        id: `deal-${Date.now()}`, storeName: 'Gokul Organic Dairy & Farm Fresh', category: cat, lat: 18.5220, lng: 73.8540,
-        productName: name, initialUnits: units, remainingUnits: units, soldUnits: 0, originalPrice: orig, publishedPrice: pub,
-        deadline: new Date(Date.now() + state.formHorizonMinutes * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh',
-        imageUrl: cat === 'DAIRY' ? 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80' : 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80'
+        id: `deal-${Date.now()}`,
+        storeName: 'Gokul Organic Dairy & Farm Fresh',
+        category: cat,
+        unit: unit,
+        lat: 18.5220,
+        lng: 73.8540,
+        productName: name,
+        description: desc,
+        initialUnits: units,
+        remainingUnits: units,
+        soldUnits: 0,
+        originalPrice: orig,
+        publishedPrice: pub,
+        deadline: new Date(Date.now() + state.formHorizonMinutes * 60000).toISOString(),
+        status: 'ACTIVE',
+        freshnessTag: 'Verified Fresh',
+        imageUrl: img || CAT_IMAGES[cat] || CAT_IMAGES['Other']
       });
-      saveState(); alert('Surplus Deal Published Successfully!'); switchTab('consumer');
+
+      saveState();
+      closeConfirmModal();
+      alert('Surplus Deal Published Successfully!');
+      switchTab('consumer');
     }
 
     function openDealModal(id) {
@@ -658,7 +922,7 @@
       document.getElementById('modal-store').innerText = d.storeName;
       document.getElementById('modal-title').innerText = d.productName;
       document.getElementById('modal-pub-price').innerText = `₹${d.publishedPrice}`;
-      document.getElementById('modal-units').innerText = `${d.remainingUnits} units`;
+      document.getElementById('modal-units').innerText = `${d.remainingUnits} ${d.unit || 'units'}`;
       document.getElementById('modal-gmaps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&query=${encodeURIComponent(d.storeName)}`;
       document.getElementById('deal-modal').classList.remove('hidden');
       lucide.createIcons();
@@ -681,7 +945,7 @@
     function setCategory(cat) { state.selectedCategory = cat; renderDealsFeed(); }
     function resetData() { localStorage.removeItem('savebite_deals'); state.deals = [...INITIAL_DEALS]; saveState(); renderDealsFeed(); }
 
-    window.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); renderDealsFeed(); });
+    window.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); recalculateSlider(true); renderDealsFeed(); });
   </script>
 </body>
 </html>
