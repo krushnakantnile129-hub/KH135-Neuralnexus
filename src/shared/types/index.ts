@@ -33,6 +33,7 @@ export interface User {
 }
 
 export type StoreCategory = 'BAKERY' | 'CAFE' | 'RESTAURANT' | 'CANTEEN' | 'GROCERY';
+export type StoreCategory = 'BAKERY' | 'CAFE' | 'RESTAURANT' | 'CANTEEN' | 'GROCERY' | 'DAIRY';
 
 export type SalesVelocity = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -73,7 +74,7 @@ export interface Deal {
   publishedPrice: number;
   wasteRiskScore: number;
   salesVelocity: SalesVelocity;
-  deadline: string; // ISO string
+  deadline: string;
   status: DealStatus;
   discountPct: number;
   freshnessTag?: string;

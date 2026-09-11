@@ -12,6 +12,7 @@ interface Props {
 export function CategoryFilter({ selectedCategory, onSelectCategory, counts }: Props) {
   const categories = [
     { id: 'ALL', label: 'All Deals', icon: '⚡' },
+    { id: 'DAIRY', label: 'Dairy & Farm', icon: '🥛' },
     { id: 'BAKERY', label: 'Bakeries', icon: '🥐' },
     { id: 'CAFE', label: 'Cafés', icon: '☕' },
     { id: 'RESTAURANT', label: 'Restaurants', icon: '🍕' },
