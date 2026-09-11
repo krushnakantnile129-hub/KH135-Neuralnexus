@@ -86,6 +86,7 @@ export function FastCatalogForm() {
   const [unitsSoldToday, setUnitsSoldToday] = useState(8);
   const [expectedDemand, setExpectedDemand] = useState(15);
   const [salesVelocity, setSalesVelocity] = useState<SalesVelocity>('MEDIUM');
+  const [salesVelocityNumeric, setSalesVelocityNumeric] = useState(2.0);
 
   // UI state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -106,6 +107,14 @@ export function FastCatalogForm() {
     }
   }, [bestBeforeDate, bestBeforeTime]);
 
+  const prepDateTimeIso = useMemo(() => {
+    try {
+      return new Date(`${prepDate}T${prepTime}:00`).toISOString();
+    } catch {
+      return new Date().toISOString();
+    }
+  }, [prepDate, prepTime]);
+
   // Waste Risk Evaluation based on current parameters
   const evaluation = useMemo(() => {
     return evaluateWasteRisk({
@@ -113,13 +122,16 @@ export function FastCatalogForm() {
       originalPrice: Math.max(5, originalPrice),
       selectedPrice: customPrice !== null ? customPrice : originalPrice,
       deadlineIso,
+      prepDateTimeIso,
       salesVelocity,
+      salesVelocityNumeric,
       unitsSoldToday,
       expectedDemand,
       prepDate,
+      prepTime,
       category,
     });
-  }, [quantity, originalPrice, customPrice, deadlineIso, salesVelocity, unitsSoldToday, expectedDemand, prepDate, category]);
+  }, [quantity, originalPrice, customPrice, deadlineIso, prepDateTimeIso, salesVelocity, salesVelocityNumeric, unitsSoldToday, expectedDemand, prepDate, prepTime, category]);
 
   const activePrice = customPrice !== null ? customPrice : evaluation.recommendedPrice;
 
@@ -130,13 +142,16 @@ export function FastCatalogForm() {
       originalPrice: Math.max(5, originalPrice),
       selectedPrice: activePrice,
       deadlineIso,
+      prepDateTimeIso,
       salesVelocity,
+      salesVelocityNumeric,
       unitsSoldToday,
       expectedDemand,
       prepDate,
+      prepTime,
       category,
     });
-  }, [quantity, originalPrice, activePrice, deadlineIso, salesVelocity, unitsSoldToday, expectedDemand, prepDate, category]);
+  }, [quantity, originalPrice, activePrice, deadlineIso, prepDateTimeIso, salesVelocity, salesVelocityNumeric, unitsSoldToday, expectedDemand, prepDate, prepTime, category]);
 
   // Calculate discount percentage
   const discountPct = Math.max(0, Math.round(((originalPrice - activePrice) / originalPrice) * 100));
@@ -153,6 +168,7 @@ export function FastCatalogForm() {
     setUnitsSoldToday(8);
     setExpectedDemand(16);
     setSalesVelocity('MEDIUM');
+    setSalesVelocityNumeric(2.5);
     const d = new Date(Date.now() + 90 * 60 * 1000);
     setBestBeforeDate(d.toISOString().split('T')[0]);
     setBestBeforeTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
@@ -170,6 +186,7 @@ export function FastCatalogForm() {
     setUnitsSoldToday(5);
     setExpectedDemand(12);
     setSalesVelocity('LOW');
+    setSalesVelocityNumeric(1.5);
     const d = new Date(Date.now() + 60 * 60 * 1000);
     setBestBeforeDate(d.toISOString().split('T')[0]);
     setBestBeforeTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
@@ -187,6 +204,7 @@ export function FastCatalogForm() {
     setUnitsSoldToday(14);
     setExpectedDemand(20);
     setSalesVelocity('HIGH');
+    setSalesVelocityNumeric(4.0);
     const d = new Date(Date.now() + 45 * 60 * 1000);
     setBestBeforeDate(d.toISOString().split('T')[0]);
     setBestBeforeTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);

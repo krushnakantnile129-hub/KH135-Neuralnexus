@@ -69,17 +69,23 @@ export interface Deal {
   // Time & Expiry Information
   prepDate?: string;
   prepTime?: string;
+  prepDateTimeIso?: string;
   bestBeforeDate?: string;
   bestBeforeTime?: string;
   expiryDateTime?: string;
   deadline: string; // ISO Selling Deadline
+  remainingLifeFormatted?: string;
+  remainingLifePct?: number;
   
   // Sales & Risk Information
   salesVelocity: SalesVelocity;
+  salesVelocityNumeric?: number; // e.g. 2 units/hour
   unitsSoldToday?: number;
   expectedDemand?: number;
   wasteRiskScore: number;
+  estimatedRiskScore?: number;
   riskLevel?: RiskLevel;
+  urgencyLevel?: 'Low' | 'Medium' | 'High' | 'Critical' | 'Expired';
   riskReasons?: string[];
   
   status: DealStatus;
@@ -95,23 +101,42 @@ export interface RiskInput {
   selectedPrice: number;
   deadlineIso: string;
   salesVelocity: SalesVelocity;
+  salesVelocityNumeric?: number;
   unitsSoldToday?: number;
   expectedDemand?: number;
   prepDate?: string;
+  prepTime?: string;
+  prepDateTimeIso?: string;
   category?: StoreCategory;
 }
 
 export interface RiskEvaluationResult {
   wasteRiskScore: number;
+  estimatedRiskScore: number;
   riskLevel: RiskLevel;
+  urgencyLevel: 'Low' | 'Medium' | 'High' | 'Critical' | 'Expired';
   recommendedPrice: number;
   recommendedDiscountPct: number;
   explanation: string;
+  pricingExplanation: string;
   reasons: string[];
   warningNotice?: string;
-  timeRemainingMinutes: number;
-  timeRemainingFormatted: string;
+  
+  // Remaining life metrics
+  remainingLifeMinutes: number;
+  remainingLifeFormatted: string;
+  timeRemainingFormatted?: string;
+  remainingLifePct: number;
+  totalLifeMinutes: number;
   windowStatus: 'safe' | 'warning' | 'critical' | 'expired';
+  
+  // Subscore breakdown
+  urgencyScore: number; // 50%
+  stockPressureScore: number; // 30%
+  salesRiskScore: number; // 20%
+  expectedSalesUntilExpiry: number;
+  stockPressureRatio: number;
+  
   subScores?: {
     sTime: number;
     sStock: number;
