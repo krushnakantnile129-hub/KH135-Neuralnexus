@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { StoreCategory, SalesVelocity, Deal } from '@/shared/types';
 import { evaluateWasteRisk } from '@/shared/engine/wasteRisk';
@@ -8,7 +8,7 @@ import { PriceSlider } from './price-slider';
 import { RiskMeter } from './risk-meter';
 import { addDeal, loadStores } from '@/lib/store';
 import { formatINR } from '@/lib/utils';
-import { Sparkles, ArrowRight, Zap, CheckCircle2, Store, Clock } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, CheckCircle2, Clock } from 'lucide-react';
 
 export function FastCatalogForm() {
   const router = useRouter();
@@ -24,22 +24,20 @@ export function FastCatalogForm() {
   };
 
   const [selectedStoreId, setSelectedStoreId] = useState(defaultStore.id);
-  const [productName, setProductName] = useState('Fresh Artisan Sourdough Loaf');
-  const [category, setCategory] = useState<StoreCategory>('BAKERY');
-  const [remainingUnits, setRemainingUnits] = useState(15);
-  const [originalPrice, setOriginalPrice] = useState(120);
-  const [salesVelocity, setSalesVelocity] = useState<SalesVelocity>('LOW');
-  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [productName, setProductName] = useState('Fresh Organic Malai Paneer (500g)');
+  const [category, setCategory] = useState<StoreCategory>('DAIRY');
+  const [remainingUnits, setRemainingUnits] = useState(12);
+  const [originalPrice, setOriginalPrice] = useState(220);
+  const [salesVelocity, setSalesVelocity] = useState<SalesVelocity>('MEDIUM');
+  const [durationMinutes, setDurationMinutes] = useState(45);
   const [customPrice, setCustomPrice] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // Compute deadline from durationMinutes
   const deadlineIso = useMemo(() => {
     return new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
   }, [durationMinutes]);
 
-  // Algorithmic evaluation
   const evaluation = useMemo(() => {
     return evaluateWasteRisk({
       quantity: Math.max(1, remainingUnits),
@@ -50,10 +48,8 @@ export function FastCatalogForm() {
     });
   }, [remainingUnits, originalPrice, customPrice, deadlineIso, salesVelocity]);
 
-  // Initial sync of selected price with recommended benchmark
   const activePrice = customPrice !== null ? customPrice : evaluation.recommendedPrice;
 
-  // Re-evaluate with active price
   const activeEvaluation = useMemo(() => {
     return evaluateWasteRisk({
       quantity: Math.max(1, remainingUnits),
@@ -64,7 +60,6 @@ export function FastCatalogForm() {
     });
   }, [remainingUnits, originalPrice, activePrice, deadlineIso, salesVelocity]);
 
-  // Quick Preset Handlers (For PRD Scenario 1 & 2 Testing)
   const applyScenario1 = () => {
     setProductName('Sourdough Loaf');
     setCategory('BAKERY');
@@ -72,7 +67,7 @@ export function FastCatalogForm() {
     setOriginalPrice(120);
     setDurationMinutes(60);
     setSalesVelocity('LOW');
-    setCustomPrice(60); // 50% markdown
+    setCustomPrice(60);
   };
 
   const applyScenario2 = () => {
@@ -82,7 +77,17 @@ export function FastCatalogForm() {
     setOriginalPrice(60);
     setDurationMinutes(50);
     setSalesVelocity('LOW');
-    setCustomPrice(50); // ₹50 override (above recommended ₹40)
+    setCustomPrice(50);
+  };
+
+  const applyDairyScenario = () => {
+    setProductName('Fresh Organic Malai Paneer (500g)');
+    setCategory('DAIRY');
+    setRemainingUnits(12);
+    setOriginalPrice(220);
+    setDurationMinutes(45);
+    setSalesVelocity('MEDIUM');
+    setCustomPrice(110);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -115,8 +120,10 @@ export function FastCatalogForm() {
       status: 'ACTIVE',
       discountPct,
       freshnessTag: 'Verified Fresh',
-      description: `Fresh surplus batch published with ${activePrice} clearance price to ensure immediate walk-in recovery.`,
-      imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80',
+      description: `Fresh surplus ${category.toLowerCase()} batch published with ₹${activePrice} clearance price to ensure immediate walk-in recovery.`,
+      imageUrl: category === 'DAIRY' 
+        ? 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -136,32 +143,39 @@ export function FastCatalogForm() {
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            Gherkin Acceptance Test Presets
+            Quick Catalog Test Presets
           </span>
           <p className="text-xs text-zinc-300 mt-0.5">
-            Pre-populate exact values defined in SRS Section 16 to verify mathematical formulas.
+            Pre-populate exact values to simulate instant risk and price advisory.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={applyDairyScenario}
+            className="px-3 py-1.5 rounded-lg bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-bold transition-colors"
+          >
+            🥛 Dairy (Paneer 50% Off)
+          </button>
           <button
             type="button"
             onClick={applyScenario1}
             className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold transition-colors"
           >
-            Scenario 1 (Sourdough - 50% Off)
+            🥐 Bakery (Sourdough 50% Off)
           </button>
           <button
             type="button"
             onClick={applyScenario2}
             className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-zinc-950 text-xs font-bold transition-colors"
           >
-            Scenario 2 (Veggie Club - ₹50 Override)
+            🥪 Sandwich (₹50 Override)
           </button>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Fast 6-Parameter Entry (<30s) */}
+        {/* Left Column: Fast 6-Parameter Entry */}
         <div className="lg:col-span-6 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-5">
           <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
             <div>
@@ -173,7 +187,6 @@ export function FastCatalogForm() {
             </span>
           </div>
 
-          {/* Store Selector */}
           <div>
             <label className="block text-xs font-bold text-zinc-700 mb-1">Originating Store / Branch</label>
             <select
@@ -187,7 +200,6 @@ export function FastCatalogForm() {
             </select>
           </div>
 
-          {/* Product Name */}
           <div>
             <label className="block text-xs font-bold text-zinc-700 mb-1">Product Name (3-80 Chars)</label>
             <input
@@ -197,13 +209,11 @@ export function FastCatalogForm() {
               maxLength={80}
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
-              placeholder="e.g. Sourdough Loaf, Margherita Slice..."
+              placeholder="e.g. Fresh Organic Paneer, Cow Milk Pouch..."
               className="w-full px-3.5 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-900 font-medium"
-            >
-            </input>
+            />
           </div>
 
-          {/* Category & Velocity Row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-zinc-700 mb-1">Category</label>
@@ -212,6 +222,7 @@ export function FastCatalogForm() {
                 onChange={(e) => setCategory(e.target.value as StoreCategory)}
                 className="w-full px-3 py-2.5 text-sm border rounded-xl bg-zinc-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium text-zinc-800"
               >
+                <option value="DAIRY">Dairy & Farm 🥛</option>
                 <option value="BAKERY">Bakery 🥐</option>
                 <option value="CAFE">Café ☕</option>
                 <option value="RESTAURANT">Restaurant 🍕</option>
@@ -234,7 +245,6 @@ export function FastCatalogForm() {
             </div>
           </div>
 
-          {/* Stock & Original Price Row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-zinc-700 mb-1">Remaining Units (Q)</label>
@@ -262,7 +272,7 @@ export function FastCatalogForm() {
                   onChange={(e) => {
                     const orig = Math.max(5, parseInt(e.target.value) || 5);
                     setOriginalPrice(orig);
-                    setCustomPrice(null); // Reset custom price to recalculate recommended
+                    setCustomPrice(null);
                   }}
                   className="w-full pl-7 pr-3.5 py-2.5 text-sm font-mono border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-zinc-900"
                 />
@@ -270,7 +280,6 @@ export function FastCatalogForm() {
             </div>
           </div>
 
-          {/* Selling Horizon & Expiry Buttons (FR-INV-03) */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-zinc-700 flex items-center gap-1">
@@ -283,7 +292,7 @@ export function FastCatalogForm() {
             </div>
 
             <div className="grid grid-cols-4 gap-2">
-              {[30, 60, 90, 180].map((mins) => (
+              {[30, 45, 60, 120].map((mins) => (
                 <button
                   key={mins}
                   type="button"
@@ -304,10 +313,8 @@ export function FastCatalogForm() {
         {/* Right Column: Dynamic Price Control Slider & Waste Risk Feedback */}
         <div className="lg:col-span-6 space-y-5 flex flex-col justify-between">
           <div className="space-y-4">
-            {/* Risk Gauge */}
             <RiskMeter evaluation={activeEvaluation} />
 
-            {/* Price Slider */}
             <PriceSlider
               originalPrice={originalPrice}
               selectedPrice={activePrice}
@@ -318,7 +325,6 @@ export function FastCatalogForm() {
             />
           </div>
 
-          {/* Submit Action Bar */}
           <div className="pt-2">
             <button
               type="submit"
@@ -335,7 +341,6 @@ export function FastCatalogForm() {
         </div>
       </form>
 
-      {/* Success Toast */}
       {showSuccessToast && (
         <div className="fixed bottom-8 right-8 z-50 bg-emerald-900 text-white px-5 py-4 rounded-2xl shadow-2xl border border-emerald-500 flex items-center gap-3 animate-in slide-in-from-bottom-5">
           <CheckCircle2 className="w-6 h-6 text-emerald-400" />

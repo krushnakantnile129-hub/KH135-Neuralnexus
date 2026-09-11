@@ -49,4 +49,5 @@ export const CATEGORY_MASS_KG: Record<string, number> = {
   RESTAURANT: 0.50,
   CANTEEN: 0.40,
   GROCERY: 0.60,
+  DAIRY: 0.50,
 };
