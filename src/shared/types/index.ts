@@ -40,20 +40,6 @@ export interface Store {
   createdAt: string;
 }
 
-export interface DealClaim {
-  id: string;
-  dealId: string;
-  claimToken: string;
-  productName: string;
-  storeName: string;
-  storeAddress: string;
-  quantity: number;
-  discountedPrice: number;
-  claimedAt: string;
-  expiresAt: string;
-  status: 'RESERVED' | 'COLLECTED' | 'EXPIRED';
-}
-
 export interface Deal {
   id: string;
   storeId: string;
@@ -72,7 +58,6 @@ export interface Deal {
   initialUnits: number;
   remainingUnits: number;
   soldUnits: number;
-  claimedUnits?: number;
   unit?: ProductUnit;
   
   // Pricing Information
@@ -81,15 +66,19 @@ export interface Deal {
   publishedPrice: number;
   discountPct: number;
   
-  // Date & Expiry Information (DD Month YYYY)
+  // Date & Expiry Information (DD Month YYYY + Optional Times)
   manufacturingDate?: string; // YYYY-MM-DD
-  manufacturingDateFormatted?: string; // e.g. 10 September 2026
-  expiryDate?: string; // YYYY-MM-DD or ISO
-  expiryDateFormatted?: string; // e.g. 12 September 2026
-  expiryCountdownFormatted?: string; // e.g. 1 Day 5 Hours Remaining
+  manufacturingTime?: string; // Optional e.g. 10:30
+  hasManufacturingTime?: boolean;
+  manufacturingDateFormatted?: string; // e.g. 11 September 2026
+  expiryDate?: string; // YYYY-MM-DD
+  expiryTime?: string; // Optional e.g. 18:00
+  hasExpiryTime?: boolean;
+  expiryDateFormatted?: string; // e.g. 11 September 2026
+  expiryCountdownFormatted?: string; // e.g. 4h 32m left or 1 day left
   isExpired?: boolean;
   
-  // Legacy / granular time support
+  // Legacy / time support
   prepDate?: string;
   prepTime?: string;
   prepDateTimeIso?: string;
@@ -125,7 +114,11 @@ export interface RiskInput {
   selectedPrice: number;
   deadlineIso?: string;
   manufacturingDate?: string;
+  manufacturingTime?: string;
+  hasManufacturingTime?: boolean;
   expiryDate?: string;
+  expiryTime?: string;
+  hasExpiryTime?: boolean;
   salesVelocity: SalesVelocity;
   salesVelocityNumeric?: number;
   unitsSoldToday?: number;

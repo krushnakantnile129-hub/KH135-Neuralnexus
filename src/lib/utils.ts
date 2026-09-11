@@ -34,10 +34,15 @@ export function formatDisplayDate(dateInput?: string | Date): string {
 }
 
 /**
- * Format expiry countdown into multi-day/hour human readable format
- * e.g. "2 Days 5 Hours Remaining" or "1 Day 5 Hours Remaining" or "5 Hours 30 Mins Remaining"
+ * Format expiry countdown into concise reverse countdown format
+ * If time available or < 24h: "4h 32m left" / "2h 15m left" / "5h left"
+ * If date only and >= 24h: "1 day left" / "2 days left"
+ * If expired: "EXPIRED"
  */
-export function formatExpiryCountdown(expiryInput?: string | Date): { 
+export function formatExpiryCountdown(
+  expiryInput?: string | Date,
+  hasExplicitTime: boolean = false
+): { 
   text: string; 
   isExpired: boolean; 
   days: number;
@@ -75,29 +80,32 @@ export function formatExpiryCountdown(expiryInput?: string | Date): {
   const mins = totalMinutes % 60;
 
   let text = '';
-  if (days > 0) {
+  // If > 24 hours and no explicit time was given, show "X day(s) left"
+  if (days >= 1 && !hasExplicitTime) {
+    text = `${days} ${days === 1 ? 'day' : 'days'} left`;
+  } else if (days >= 1 && hasExplicitTime) {
     if (remainingHours > 0) {
-      text = `${days} ${days === 1 ? 'Day' : 'Days'} ${remainingHours} ${remainingHours === 1 ? 'Hour' : 'Hours'} Remaining`;
+      text = `${days}d ${remainingHours}h left`;
     } else {
-      text = `${days} ${days === 1 ? 'Day' : 'Days'} Remaining`;
+      text = `${days} ${days === 1 ? 'day' : 'days'} left`;
     }
   } else if (totalHours > 0) {
     if (mins > 0) {
-      text = `${totalHours} ${totalHours === 1 ? 'Hour' : 'Hours'} ${mins} Mins Remaining`;
+      text = `${totalHours}h ${mins}m left`;
     } else {
-      text = `${totalHours} ${totalHours === 1 ? 'Hour' : 'Hours'} Remaining`;
+      text = `${totalHours}h left`;
     }
   } else {
-    text = `${mins} Mins Remaining`;
+    text = `${Math.max(1, mins)}m left`;
   }
 
   let status: 'safe' | 'warning' | 'critical' | 'expired' = 'safe';
   if (days >= 2) {
-    status = 'safe'; // 🟢 Safe (> 48h)
-  } else if (days === 1 || totalHours >= 6) {
-    status = 'warning'; // 🟡 Moderate (6h - 48h)
+    status = 'safe';
+  } else if (days === 1 || totalHours >= 4) {
+    status = 'warning';
   } else {
-    status = 'critical'; // 🔴 High Urgency (< 6h)
+    status = 'critical';
   }
 
   return {

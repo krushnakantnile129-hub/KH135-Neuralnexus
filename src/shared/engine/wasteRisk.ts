@@ -13,32 +13,46 @@ import { formatDisplayDate, formatExpiryCountdown } from '@/lib/utils';
 export function evaluateWasteRisk(input: RiskInput): RiskEvaluationResult {
   const now = Date.now();
   
-  // 1. Resolve Expiry Date/Time
+  // 1. Resolve Expiry Date/Time (Time is OPTIONAL)
   let expiryMs: number;
+  const hasExpiryTime = !!(input.expiryTime && input.expiryTime.trim()) || !!input.hasExpiryTime;
+  
   if (input.expiryDate) {
     if (input.expiryDate.includes('T')) {
       expiryMs = new Date(input.expiryDate).getTime();
     } else if (/^\d{4}-\d{2}-\d{2}$/.test(input.expiryDate)) {
       const [y, m, d] = input.expiryDate.split('-').map(Number);
-      expiryMs = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+      if (hasExpiryTime && input.expiryTime) {
+        const [hh, mm] = input.expiryTime.split(':').map(Number);
+        expiryMs = new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0).getTime();
+      } else {
+        // End of that date
+        expiryMs = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+      }
     } else {
       expiryMs = new Date(input.expiryDate).getTime();
     }
   } else if (input.deadlineIso) {
     expiryMs = new Date(input.deadlineIso).getTime();
   } else {
-    // Default 2 days from now
-    expiryMs = now + (2 * 24 * 60 * 60 * 1000);
+    // Default: end of today
+    const today = new Date();
+    expiryMs = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime();
   }
 
-  // 2. Resolve Manufacturing Date/Time
+  // 2. Resolve Manufacturing Date/Time (Time is OPTIONAL)
   let mfgMs: number;
   if (input.manufacturingDate) {
     if (input.manufacturingDate.includes('T')) {
       mfgMs = new Date(input.manufacturingDate).getTime();
     } else if (/^\d{4}-\d{2}-\d{2}$/.test(input.manufacturingDate)) {
       const [y, m, d] = input.manufacturingDate.split('-').map(Number);
-      mfgMs = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+      if (input.manufacturingTime && input.manufacturingTime.trim()) {
+        const [hh, mm] = input.manufacturingTime.split(':').map(Number);
+        mfgMs = new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0).getTime();
+      } else {
+        mfgMs = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+      }
     } else {
       mfgMs = new Date(input.manufacturingDate).getTime();
     }
@@ -47,13 +61,12 @@ export function evaluateWasteRisk(input: RiskInput): RiskEvaluationResult {
   } else if (input.prepDate) {
     mfgMs = new Date(`${input.prepDate}T00:00:00`).getTime();
   } else {
-    // Default 2 days before expiry
-    mfgMs = expiryMs - (4 * 24 * 60 * 60 * 1000);
+    mfgMs = expiryMs - (24 * 60 * 60 * 1000);
   }
 
-  // Safety check: if mfgMs is invalid or >= expiryMs, set default 2-day window
+  // Safety check: if mfgMs is invalid or >= expiryMs, set default window
   if (isNaN(mfgMs) || mfgMs >= expiryMs) {
-    mfgMs = expiryMs - (2 * 24 * 60 * 60 * 1000);
+    mfgMs = expiryMs - (12 * 60 * 60 * 1000);
   }
 
   const remainingMs = Math.max(0, expiryMs - now);

@@ -91,7 +91,7 @@
               </span>
             </h1>
             <p class="text-zinc-300 text-xs sm:text-sm max-w-2xl mt-2 leading-relaxed">
-              Connect directly with neighborhood bakeries, cafes, and food outlets. Discover date-tracked surplus items, claim live deals, and navigate with Google Maps.
+              Connect directly with neighborhood food stalls, bakeries, and eateries. Discover nearby deals within 10 km, view directions on Google Maps, and purchase directly at the counter.
             </p>
           </div>
 
@@ -128,7 +128,7 @@
             id="search-input"
             type="text"
             oninput="renderDealsFeed()"
-            placeholder="Search fresh sandwiches, sourdough, milk, paneer..."
+            placeholder="Search samosa, pani puri, vada pav, sandwich, paneer..."
             class="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-zinc-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-zinc-900"
           />
         </div>
@@ -151,10 +151,10 @@
       <!-- Category Filter Pills -->
       <div class="flex items-center gap-2 overflow-x-auto pb-2">
         <button onclick="filterCat('ALL')" class="cat-pill active px-3.5 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 text-white shadow-sm whitespace-nowrap">All Items</button>
+        <button onclick="filterCat('Snacks')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-zinc-700 border hover:bg-zinc-100 whitespace-nowrap">🍿 Snacks</button>
         <button onclick="filterCat('Prepared Food')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-zinc-700 border hover:bg-zinc-100 whitespace-nowrap">🍱 Prepared Food</button>
         <button onclick="filterCat('Bakery')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-zinc-700 border hover:bg-zinc-100 whitespace-nowrap">🥐 Bakery</button>
         <button onclick="filterCat('Dairy')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-zinc-700 border hover:bg-zinc-100 whitespace-nowrap">🥛 Dairy</button>
-        <button onclick="filterCat('Snacks')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-zinc-700 border hover:bg-zinc-100 whitespace-nowrap">🍿 Snacks</button>
         <button onclick="filterCat('Beverages')" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-zinc-700 border hover:bg-zinc-100 whitespace-nowrap">☕ Beverages</button>
       </div>
 
@@ -182,11 +182,11 @@
           <span>Google Maps Platform: <strong>10 KM Search Radius</strong></span>
         </div>
 
-        <!-- Interactive Pins will be inserted here -->
+        <!-- Interactive Pins -->
         <div id="map-pins-overlay" class="absolute inset-0 pointer-events-auto"></div>
       </div>
 
-      <!-- Deals Grid -->
+      <!-- Deals Grid (STRICT 7 FIELDS) -->
       <div id="deals-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
 
       <!-- Empty State -->
@@ -203,8 +203,8 @@
   <section id="tab-merchant" class="hidden flex-1 flex flex-col max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-black text-zinc-900">Merchant Dashboard &amp; Stock Tracking</h1>
-        <p class="text-xs text-zinc-500">Track surplus clearance, automatic expiry triggers, and 1-tap counter sales.</p>
+        <h1 class="text-2xl font-black text-zinc-900">Merchant Dashboard &amp; Counter Sales</h1>
+        <p class="text-xs text-zinc-500">Track surplus inventory clearance and 1-tap physical counter sales.</p>
       </div>
       <button onclick="switchTab('add-deal')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow flex items-center gap-1.5">
         <i data-lucide="plus-circle" class="w-4 h-4"></i>
@@ -224,9 +224,23 @@
 
   <!-- TAB 3: ADD PRODUCT / PRICING SLIDER FORM -->
   <section id="tab-add-deal" class="hidden flex-1 flex flex-col max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
-    <div class="border-b pb-4">
-      <h1 class="text-2xl font-black text-zinc-900">List Surplus Food Product</h1>
-      <p class="text-xs text-zinc-500">Provide Manufacturing Date &amp; Expiry Date (DD Month YYYY) for explainable waste risk scoring.</p>
+    <!-- Presets Banner -->
+    <div class="bg-gradient-to-r from-emerald-950 via-teal-900 to-zinc-900 text-white rounded-3xl p-5 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-4 h-4 text-emerald-300"></i>
+          Local Vendor Quick Presets
+        </span>
+        <p class="text-xs text-zinc-300 mt-1 max-w-lg">
+          Test local vendor items (Samosa, Pani Puri, Vada Pav, Sandwich) with required Date &amp; Optional Time pickers.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" onclick="loadPreset('samosa')" class="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-950 text-xs font-black shadow">🥟 Samosa (Sharma)</button>
+        <button type="button" onclick="loadPreset('panipuri')" class="px-3 py-1.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-black shadow">🥣 Pani Puri (Ganesh)</button>
+        <button type="button" onclick="loadPreset('vadapav')" class="px-3 py-1.5 rounded-xl bg-orange-400 hover:bg-orange-300 text-zinc-950 text-xs font-black shadow">🍔 Vada Pav (Date Only)</button>
+        <button type="button" onclick="loadPreset('sandwich')" class="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-zinc-950 text-xs font-black shadow">🥪 Sandwich (ABC)</button>
+      </div>
     </div>
 
     <form onsubmit="handlePublishProduct(event)" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -237,60 +251,89 @@
           <h2 class="font-black text-sm uppercase tracking-wide text-zinc-900">1. Product Information</h2>
           <div>
             <label class="block text-xs font-bold text-zinc-700 mb-1">Product Name *</label>
-            <input id="form-name" type="text" required value="Fresh Sandwich" class="w-full px-3.5 py-2.5 text-sm font-semibold border rounded-xl outline-none" />
+            <input id="form-name" type="text" required value="Hot Crispy Punjabi Samosa (Set of 4)" class="w-full px-3.5 py-2.5 text-sm font-semibold border rounded-xl outline-none" />
           </div>
+
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-zinc-700 mb-1">Category *</label>
               <select id="form-category" class="w-full px-3 py-2 text-xs font-semibold border rounded-xl outline-none">
+                <option value="Snacks">Snacks</option>
                 <option value="Prepared Food">Prepared Food</option>
                 <option value="Bakery">Bakery</option>
                 <option value="Dairy">Dairy</option>
-                <option value="Snacks">Snacks</option>
                 <option value="Beverages">Beverages</option>
                 <option value="Other">Other</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold text-zinc-700 mb-1">Quantity *</label>
-              <input id="form-units" type="number" min="1" value="8" oninput="recalculateSlider()" class="w-full px-3 py-2 text-xs font-mono font-bold border rounded-xl outline-none" />
+              <label class="block text-xs font-bold text-zinc-700 mb-1">Quantity Available *</label>
+              <input id="form-units" type="number" min="1" value="12" oninput="recalculateSlider()" class="w-full px-3 py-2 text-xs font-mono font-bold border rounded-xl outline-none" />
+            </div>
+          </div>
+
+          <!-- Photo Upload & URL -->
+          <div class="bg-zinc-50 p-3.5 rounded-2xl border space-y-2">
+            <label class="block text-xs font-bold text-zinc-700">Product Photo</label>
+            <div class="flex items-center gap-3">
+              <img id="form-img-preview" src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80" class="w-14 h-14 rounded-xl object-cover border" />
+              <div class="flex-1 space-y-1">
+                <input type="file" accept="image/*" onchange="previewUpload(event)" class="text-xs text-zinc-600 block w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white" />
+                <input id="form-img-url" type="url" value="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80" oninput="document.getElementById('form-img-preview').src = this.value" placeholder="Or image URL" class="w-full px-2 py-1 text-xs border rounded-lg" />
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Section 2: Manufacturing & Expiry Date Pickers -->
+        <!-- Section 2: Manufacturing & Expiry Date Pickers with Optional Times -->
         <div class="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
           <div class="flex items-center justify-between border-b pb-2">
             <h2 class="font-black text-sm uppercase tracking-wide text-zinc-900">2. Manufacturing &amp; Expiry Dates</h2>
-            <span class="text-xs font-mono font-bold text-emerald-700">DD Month YYYY Format</span>
+            <span class="text-xs font-mono font-bold text-emerald-700">DD Month YYYY (Time Optional)</span>
           </div>
 
           <!-- Countdown Preview -->
           <div class="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
             <div>
-              <div class="text-xs font-bold text-emerald-950">Expires on: <span id="form-exp-preview">12 September 2026</span></div>
-              <div class="text-[11px] text-emerald-800 font-semibold mt-0.5">Live Countdown: <span id="form-countdown-preview" class="font-mono font-black">1 Day 5 Hours Remaining</span></div>
+              <div class="text-xs font-bold text-emerald-950">Expires: <span id="form-exp-preview">11 September 2026, 8:00 PM</span></div>
+              <div class="text-[11px] text-emerald-800 font-semibold mt-0.5">Time Left: <span id="form-countdown-preview" class="font-mono font-black">4h 32m left</span></div>
             </div>
-            <span class="text-xs font-black bg-white px-2 py-1 rounded-lg border shadow-sm">⏳ 1 Day 5 Hours</span>
+            <span id="form-countdown-pill" class="text-xs font-black bg-white px-2 py-1 rounded-lg border shadow-sm">⏳ 4h 32m left</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="bg-zinc-50 p-3 rounded-2xl border">
-              <label class="block text-xs font-bold text-zinc-700 mb-1">Manufacturing Date *</label>
-              <input id="form-mfg-date" type="date" value="2026-09-10" onchange="updateFormDates()" class="w-full px-3 py-2 text-xs font-mono font-bold border rounded-xl bg-white" />
-              <p class="text-[11px] text-zinc-500 font-semibold mt-1">Made: <strong id="form-mfg-text" class="text-zinc-800">10 September 2026</strong></p>
+            <!-- Manufacturing Date & Optional Time -->
+            <div class="bg-zinc-50 p-3 rounded-2xl border space-y-2">
+              <label class="block text-xs font-bold text-zinc-700">Manufacturing Date *</label>
+              <input id="form-mfg-date" type="date" value="2026-09-11" onchange="updateFormDates()" class="w-full px-3 py-2 text-xs font-mono font-bold border rounded-xl bg-white" />
+              <div class="pt-1.5 border-t flex items-center justify-between">
+                <label class="text-[11px] font-semibold text-zinc-600 flex items-center gap-1 cursor-pointer">
+                  <input id="form-has-mfg-time" type="checkbox" checked onchange="updateFormDates()" />
+                  <span>Include Time</span>
+                </label>
+                <input id="form-mfg-time" type="time" value="10:00" onchange="updateFormDates()" class="px-2 py-1 text-xs border rounded-lg" />
+              </div>
+              <p class="text-[11px] text-zinc-500 font-semibold">Made: <strong id="form-mfg-text" class="text-zinc-800">11 September 2026, 10:00 AM</strong></p>
             </div>
 
-            <div class="bg-emerald-50/40 p-3 rounded-2xl border border-emerald-200">
-              <label class="block text-xs font-bold text-emerald-900 mb-1">Expiry Date *</label>
-              <input id="form-exp-date" type="date" value="2026-09-12" onchange="updateFormDates()" class="w-full px-3 py-2 text-xs font-mono font-bold border border-emerald-300 rounded-xl bg-white" />
-              <p class="text-[11px] text-emerald-800 font-semibold mt-1">Expires: <strong id="form-exp-text" class="text-emerald-950">12 September 2026</strong></p>
+            <!-- Expiry Date & Optional Time -->
+            <div class="bg-emerald-50/40 p-3 rounded-2xl border border-emerald-200 space-y-2">
+              <label class="block text-xs font-bold text-emerald-900">Expiry Date *</label>
+              <input id="form-exp-date" type="date" value="2026-09-11" onchange="updateFormDates()" class="w-full px-3 py-2 text-xs font-mono font-bold border border-emerald-300 rounded-xl bg-white" />
+              <div class="pt-1.5 border-t border-emerald-200 flex items-center justify-between">
+                <label class="text-[11px] font-semibold text-emerald-900 flex items-center gap-1 cursor-pointer">
+                  <input id="form-has-exp-time" type="checkbox" checked onchange="updateFormDates()" />
+                  <span>Include Time</span>
+                </label>
+                <input id="form-exp-time" type="time" value="20:00" onchange="updateFormDates()" class="px-2 py-1 text-xs border rounded-lg" />
+              </div>
+              <p class="text-[11px] text-emerald-800 font-semibold">Expires: <strong id="form-exp-text" class="text-emerald-950">11 September 2026, 8:00 PM</strong></p>
             </div>
           </div>
 
           <div class="flex items-center justify-between pt-2 border-t">
             <span class="text-xs font-bold text-zinc-700">Sales Velocity (units/hr):</span>
-            <input id="form-velocity-numeric" type="number" step="0.5" value="1.5" oninput="recalculateSlider()" class="w-20 px-2 py-1 text-xs font-mono font-bold border rounded-xl text-center" />
+            <input id="form-velocity-numeric" type="number" step="0.5" value="2.5" oninput="recalculateSlider()" class="w-20 px-2 py-1 text-xs font-mono font-bold border rounded-xl text-center" />
           </div>
         </div>
 
@@ -300,11 +343,11 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-zinc-700 mb-1">Original Price (₹) *</label>
-              <input id="form-price" type="number" min="5" value="60" oninput="recalculateSlider(true)" class="w-full px-3.5 py-2.5 text-sm font-mono font-bold border rounded-xl outline-none" />
+              <input id="form-price" type="number" min="5" value="80" oninput="recalculateSlider(true)" class="w-full px-3.5 py-2.5 text-sm font-mono font-bold border rounded-xl outline-none" />
             </div>
             <div>
               <label class="block text-xs font-bold text-zinc-700 mb-1">Recommended Clearance (₹)</label>
-              <input id="form-rec-price-disp" type="text" disabled value="₹35" class="w-full px-3.5 py-2.5 text-sm font-mono font-bold border rounded-xl bg-emerald-50 text-emerald-900 cursor-not-allowed" />
+              <input id="form-rec-price-disp" type="text" disabled value="₹48" class="w-full px-3.5 py-2.5 text-sm font-mono font-bold border rounded-xl bg-emerald-50 text-emerald-900 cursor-not-allowed" />
             </div>
           </div>
         </div>
@@ -318,14 +361,14 @@
             <div class="flex justify-between items-center">
               <h3 class="font-black text-xs uppercase tracking-wider text-zinc-500">Waste Risk Engine</h3>
               <span id="risk-score-badge" class="font-black text-sm text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
-                Waste Risk: 86% 🔴
+                Waste Risk: 78% 🔴
               </span>
             </div>
             <div class="w-full bg-zinc-100 rounded-full h-3 overflow-hidden">
-              <div id="risk-progress-bar" class="h-full rounded-full bg-rose-600" style="width: 86%;"></div>
+              <div id="risk-progress-bar" class="h-full rounded-full bg-rose-600" style="width: 78%;"></div>
             </div>
             <p id="risk-primary-reason" class="text-xs font-semibold text-zinc-700 italic">
-              "High stock remaining with limited shelf life."
+              "Closing window within 5 hours requires clearance pricing."
             </p>
           </div>
 
@@ -333,12 +376,12 @@
           <div class="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
             <div class="flex justify-between items-center">
               <h3 class="font-black text-sm text-zinc-900">Shopkeeper Price Slider</h3>
-              <span id="slider-price-val" class="text-2xl font-black text-emerald-700">₹35</span>
+              <span id="slider-price-val" class="text-2xl font-black text-emerald-700">₹48</span>
             </div>
-            <input id="price-range-slider" type="range" min="15" max="60" value="35" oninput="onSliderMove(this.value)" class="w-full accent-emerald-600 cursor-pointer h-2 bg-zinc-200 rounded-lg" />
+            <input id="price-range-slider" type="range" min="20" max="80" value="48" oninput="onSliderMove(this.value)" class="w-full accent-emerald-600 cursor-pointer h-2 bg-zinc-200 rounded-lg" />
             <div class="flex justify-between text-[11px] font-bold text-zinc-400">
-              <span>₹15 (Max Clearance)</span>
-              <span>₹60 (Original)</span>
+              <span>₹20 (Max Clearance)</span>
+              <span>₹80 (Original)</span>
             </div>
             <p id="slider-explain-text" class="text-xs text-zinc-500 bg-zinc-50 p-3 rounded-xl border">
               Optimized balance between clearance velocity and revenue recovery.
@@ -347,34 +390,52 @@
         </div>
 
         <button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base rounded-2xl shadow-xl transition active:scale-95">
-          [ PUBLISH DEAL (₹35) ➔ ]
+          [ PUBLISH DEAL (₹48) ➔ ]
         </button>
       </div>
     </form>
   </section>
 
-  <!-- CLAIM DEAL MODAL -->
-  <div id="claim-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <!-- DIRECT STORE DISCOVERY & NAVIGATION MODAL (ZERO RESERVATION TOKENS) -->
+  <div id="detail-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
       <div class="flex justify-between items-start border-b pb-3">
         <div>
-          <span class="text-[10px] uppercase font-bold tracking-wider text-emerald-700">ResQFood Claim Confirmation</span>
-          <h3 id="claim-prod-title" class="text-xl font-black text-zinc-900">Fresh Sandwich</h3>
+          <span class="text-[10px] uppercase font-bold tracking-wider text-emerald-700 flex items-center gap-1">
+            <i data-lucide="store" class="w-3.5 h-3.5"></i>
+            <span id="modal-store-name">Sharma Snacks</span>
+          </span>
+          <h3 id="modal-prod-title" class="text-xl font-black text-zinc-900">Hot Crispy Punjabi Samosa</h3>
         </div>
-        <button onclick="closeClaimModal()" class="text-zinc-400 hover:text-zinc-600 font-bold">✕</button>
+        <button onclick="closeDetailModal()" class="text-zinc-400 hover:text-zinc-600 font-bold">✕</button>
       </div>
 
-      <!-- Voucher Token -->
-      <div class="p-5 rounded-2xl bg-emerald-50 border-2 border-dashed border-emerald-500 text-center space-y-1.5">
-        <span class="text-[10px] uppercase font-bold text-emerald-800">Reservation Token</span>
-        <h4 id="claim-token-display" class="text-3xl font-mono font-black text-emerald-950 tracking-widest">RESQ-8F2K9</h4>
-        <p class="text-xs text-emerald-800">Present at counter POS to buy at discounted clearance price.</p>
+      <!-- Direct Walk-in Banner -->
+      <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-1">
+        <h4 class="font-extrabold text-xs flex items-center gap-1">
+          <span>🚶 Walk-in Counter Deal (Zero Reservation Needed)</span>
+        </h4>
+        <p class="text-xs text-emerald-800 leading-relaxed">
+          Visit the store in person to grab this deal directly at the counter before expiry. Open Google Maps below for directions.
+        </p>
+      </div>
+
+      <!-- Quick Summary -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="bg-zinc-50 p-2.5 rounded-xl border">
+          <span class="text-[10px] text-zinc-400 font-semibold block uppercase">Time Left</span>
+          <span id="modal-countdown" class="font-mono font-bold text-emerald-700">⏳ 4h 32m left</span>
+        </div>
+        <div class="bg-zinc-50 p-2.5 rounded-xl border">
+          <span class="text-[10px] text-zinc-400 font-semibold block uppercase">Distance</span>
+          <span id="modal-distance" class="font-bold text-zinc-800">📍 1.4 km</span>
+        </div>
       </div>
 
       <!-- Turn-by-Turn Navigation -->
-      <a id="claim-gmaps-link" href="#" target="_blank" class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg flex items-center justify-center gap-2">
+      <a id="modal-gmaps-link" href="#" target="_blank" class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg flex items-center justify-center gap-2">
         <i data-lucide="navigation" class="w-4 h-4 fill-current"></i>
-        <span>Launch Google Maps Turn-by-Turn</span>
+        <span>📍 Get Directions on Google Maps</span>
       </a>
     </div>
   </div>
@@ -398,16 +459,93 @@
   <script>
     const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-    function formatDDMonthYYYY(dStr) {
+    function formatDDMonthYYYY(dStr, timeStr) {
       if (!dStr) return '';
       const d = new Date(dStr);
       if (isNaN(d.getTime())) return dStr;
-      return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+      const base = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+      return timeStr ? `${base}, ${timeStr}` : base;
     }
 
     const INITIAL_DEALS = [
       {
         id: '1',
+        storeName: 'Sharma Snacks',
+        category: 'Snacks',
+        unit: 'pieces',
+        lat: 18.5245,
+        lng: 73.8580,
+        productName: 'Hot Crispy Punjabi Samosa (Set of 4)',
+        initialUnits: 20,
+        remainingUnits: 12,
+        soldUnits: 8,
+        originalPrice: 80,
+        publishedPrice: 48,
+        mfgDate: '2026-09-11',
+        mfgTime: '10:00 AM',
+        hasMfgTime: true,
+        mfgFormatted: '11 September 2026, 10:00 AM',
+        expDate: '2026-09-11',
+        expTime: '8:00 PM',
+        hasExpTime: true,
+        expFormatted: '11 September 2026, 8:00 PM',
+        countdown: '4h 32m left',
+        wasteRisk: 78,
+        status: 'ACTIVE',
+        imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80'
+      },
+      {
+        id: '2',
+        storeName: 'Ganesh Pani Puri',
+        category: 'Snacks',
+        unit: 'packs',
+        lat: 18.5280,
+        lng: 73.8590,
+        productName: 'Pani Puri Combo Kit (30 Puris + Water)',
+        initialUnits: 15,
+        remainingUnits: 6,
+        soldUnits: 9,
+        originalPrice: 120,
+        publishedPrice: 60,
+        mfgDate: '2026-09-11',
+        mfgTime: '11:30 AM',
+        hasMfgTime: true,
+        mfgFormatted: '11 September 2026, 11:30 AM',
+        expDate: '2026-09-11',
+        expTime: '9:00 PM',
+        hasExpTime: true,
+        expFormatted: '11 September 2026, 9:00 PM',
+        countdown: '5h 15m left',
+        wasteRisk: 82,
+        status: 'ACTIVE',
+        imageUrl: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80'
+      },
+      {
+        id: '3',
+        storeName: 'Shivaji Vada Pav',
+        category: 'Snacks',
+        unit: 'pieces',
+        lat: 18.5140,
+        lng: 73.8400,
+        productName: 'Butter Vada Pav with Fried Chutney',
+        initialUnits: 25,
+        remainingUnits: 14,
+        soldUnits: 11,
+        originalPrice: 50,
+        publishedPrice: 30,
+        mfgDate: '2026-09-11',
+        hasMfgTime: false,
+        mfgFormatted: '11 September 2026',
+        expDate: '2026-09-11',
+        hasExpTime: false,
+        expFormatted: '11 September 2026',
+        countdown: '6h 45m left',
+        wasteRisk: 70,
+        status: 'ACTIVE',
+        imageUrl: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80'
+      },
+      {
+        id: '4',
         storeName: 'ABC Gourmet Bakery & Café',
         category: 'Prepared Food',
         unit: 'pieces',
@@ -420,16 +558,18 @@
         originalPrice: 60,
         publishedPrice: 35,
         mfgDate: '2026-09-10',
+        hasMfgTime: false,
         mfgFormatted: '10 September 2026',
         expDate: '2026-09-12',
+        hasExpTime: false,
         expFormatted: '12 September 2026',
-        countdown: '1 Day 5 Hours Remaining',
+        countdown: '1 day left',
         wasteRisk: 86,
         status: 'ACTIVE',
         imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80'
       },
       {
-        id: '2',
+        id: '5',
         storeName: 'Gokul Organic Dairy',
         category: 'Dairy',
         unit: 'packs',
@@ -442,62 +582,20 @@
         originalPrice: 220,
         publishedPrice: 110,
         mfgDate: '2026-09-10',
+        hasMfgTime: false,
         mfgFormatted: '10 September 2026',
         expDate: '2026-09-13',
+        hasExpTime: false,
         expFormatted: '13 September 2026',
-        countdown: '2 Days 4 Hours Remaining',
+        countdown: '2 days left',
         wasteRisk: 74,
         status: 'ACTIVE',
         imageUrl: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80'
-      },
-      {
-        id: '3',
-        storeName: 'Gokul Organic Dairy',
-        category: 'Dairy',
-        unit: 'litres',
-        lat: 18.5220,
-        lng: 73.8540,
-        productName: 'Pasteurized Whole Cow Milk (1L)',
-        initialUnits: 20,
-        remainingUnits: 16,
-        soldUnits: 4,
-        originalPrice: 70,
-        publishedPrice: 45,
-        mfgDate: '2026-09-11',
-        mfgFormatted: '11 September 2026',
-        expDate: '2026-09-12',
-        expFormatted: '12 September 2026',
-        countdown: '18 Hours Remaining',
-        wasteRisk: 68,
-        status: 'ACTIVE',
-        imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80'
-      },
-      {
-        id: '4',
-        storeName: 'ABC Gourmet Bakery',
-        category: 'Bakery',
-        unit: 'pieces',
-        lat: 18.5255,
-        lng: 73.8595,
-        productName: 'Artisan Sourdough Loaf',
-        initialUnits: 15,
-        remainingUnits: 12,
-        soldUnits: 3,
-        originalPrice: 120,
-        publishedPrice: 60,
-        mfgDate: '2026-09-10',
-        mfgFormatted: '10 September 2026',
-        expDate: '2026-09-12',
-        expFormatted: '12 September 2026',
-        countdown: '1 Day 2 Hours Remaining',
-        wasteRisk: 78,
-        status: 'ACTIVE',
-        imageUrl: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=600&auto=format&fit=crop&q=80'
       }
     ];
 
     let state = {
-      deals: JSON.parse(localStorage.getItem('resqfood_deals')) || INITIAL_DEALS,
+      deals: JSON.parse(localStorage.getItem('resqfood_deals_v2')) || INITIAL_DEALS,
       userLat: 18.5204,
       userLng: 73.8567,
       radiusKm: 10.0,
@@ -506,7 +604,7 @@
     };
 
     function saveState() {
-      localStorage.setItem('resqfood_deals', JSON.stringify(state.deals));
+      localStorage.setItem('resqfood_deals_v2', JSON.stringify(state.deals));
     }
 
     function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -563,6 +661,7 @@
       renderDealsFeed();
     }
 
+    // STRICT CUSTOMER CARD: EXACTLY 7 FIELDS
     function renderDealsFeed() {
       const grid = document.getElementById('deals-grid');
       const empty = document.getElementById('deals-empty-state');
@@ -586,37 +685,35 @@
       grid.innerHTML = active.map(d => {
         const disc = Math.round(((d.originalPrice - d.publishedPrice) / d.originalPrice) * 100);
         return `
-          <div class="group bg-white rounded-3xl border border-zinc-200 hover:border-emerald-500 hover:shadow-2xl transition duration-200 overflow-hidden flex flex-col">
-            <div class="relative h-48 bg-zinc-100">
+          <div onclick="openDetailModal('${d.id}')" class="group bg-white rounded-3xl border border-zinc-200 hover:border-emerald-500 hover:shadow-2xl transition duration-200 overflow-hidden flex flex-col cursor-pointer active:scale-[0.99]">
+            <!-- 1. Photo & Badges -->
+            <div class="relative h-48 bg-zinc-100 overflow-hidden">
               <img src="${d.imageUrl}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              <div class="absolute top-3 right-3 bg-rose-600 text-white text-xs font-black px-3 py-1 rounded-full shadow">${disc}% OFF</div>
-              <div class="absolute top-3 left-3 bg-zinc-950/80 text-white text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md">${d.category}</div>
-              <div class="absolute bottom-2.5 left-3 bg-white/95 text-zinc-900 text-xs font-bold px-2.5 py-1 rounded-lg shadow border">📍 ${formatDistStr(d.dist)} away</div>
+              <!-- 4. Discount Badge -->
+              <div class="absolute top-3 right-3 bg-rose-600 text-white text-xs font-black px-3 py-1 rounded-full shadow">🔥 ${disc}% OFF</div>
+              <!-- 3. Category Badge -->
+              <div class="absolute top-3 left-3 bg-zinc-950/80 text-white text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-lg">${d.category}</div>
+              <!-- 6. Distance Badge -->
+              <div class="absolute bottom-3 left-3 bg-white/95 text-zinc-900 text-xs font-bold px-2.5 py-1 rounded-lg shadow border">📍 ${formatDistStr(d.dist)}</div>
             </div>
+
+            <!-- Card Body -->
             <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
               <div>
+                <!-- 7. Vendor Name -->
                 <p class="text-xs font-bold text-emerald-700">🏪 ${d.storeName}</p>
-                <h3 class="font-black text-lg text-zinc-900 mt-1">${d.productName}</h3>
-                
-                <div class="mt-2 flex items-baseline gap-2">
-                  <span class="text-sm text-zinc-400 line-through font-semibold">₹${d.originalPrice}</span>
-                  <span class="text-zinc-400 text-sm font-bold">→</span>
-                  <span class="text-2xl font-black text-emerald-800">₹${d.publishedPrice}</span>
-                  <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md ml-auto">Save ₹${d.originalPrice - d.publishedPrice}</span>
-                </div>
-
-                <div class="mt-4 pt-3 border-t border-zinc-100 space-y-1.5 text-xs text-zinc-700">
-                  <div class="flex items-center gap-1.5 font-semibold"><span>📦</span> <span><strong>${d.remainingUnits}</strong> ${d.unit || 'left'}</span></div>
-                  <div class="flex items-center gap-1.5"><span>🏭</span> <span>Made: <strong>${d.mfgFormatted}</strong></span></div>
-                  <div class="flex items-center gap-1.5"><span>📅</span> <span>Expires: <strong>${d.expFormatted}</strong></span></div>
-                  <div class="flex items-center gap-1.5 font-bold text-amber-600"><span>⏳</span> <span>${d.countdown}</span></div>
-                  <div class="flex items-center gap-1.5 font-bold text-rose-600 pt-0.5"><span>🔴</span> <span>Waste Risk: <strong>${d.wasteRisk}%</strong></span></div>
-                </div>
+                <!-- 2. Product Name -->
+                <h3 class="font-black text-lg text-zinc-900 mt-1 line-clamp-1">${d.productName}</h3>
               </div>
 
-              <button onclick="claimDeal('${d.id}')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-lg shadow-emerald-600/20 active:scale-95 transition">
-                [ CLAIM DEAL ]
-              </button>
+              <!-- 5. Time Left (Reverse Countdown) -->
+              <div class="pt-3 border-t border-zinc-100 flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-xs font-bold text-zinc-800">
+                  <span class="text-zinc-500 font-medium">Time Left:</span>
+                  <span class="font-mono text-emerald-700 font-black">⏳ ${d.countdown}</span>
+                </div>
+                <span class="text-xs font-bold text-emerald-600">View Location ➔</span>
+              </div>
             </div>
           </div>
         `;
@@ -637,10 +734,9 @@
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
         return `
-          <div style="position: absolute; left: calc(50% + ${x}px); top: calc(50% + ${y}px); transform: translate(-50%, -100%); cursor: pointer;" onclick="claimDeal('${d.id}')" class="group z-30">
+          <div style="position: absolute; left: calc(50% + ${x}px); top: calc(50% + ${y}px); transform: translate(-50%, -100%); cursor: pointer;" onclick="openDetailModal('${d.id}')" class="group z-30">
             <div class="bg-emerald-500 text-zinc-950 font-black text-xs px-2.5 py-1 rounded-xl shadow-lg flex items-center gap-1 border border-white hover:scale-110 transition">
-              <span>🏪 ${d.productName.split(' ')[0]}</span>
-              <span class="bg-white/40 px-1 rounded text-[10px]">₹${d.publishedPrice}</span>
+              <span>🏪 ${d.storeName.split(' ')[0]}</span>
             </div>
             <div class="text-[9px] font-mono text-emerald-300 bg-black/80 px-1 rounded text-center mt-0.5">📍 ${formatDistStr(dist)}</div>
           </div>
@@ -648,27 +744,21 @@
       }).join('');
     }
 
-    function claimDeal(id) {
+    function openDetailModal(id) {
       const d = state.deals.find(x => x.id === id);
-      if (!d || d.remainingUnits <= 0) return;
-      d.remainingUnits--;
-      d.soldUnits++;
-      if (d.remainingUnits === 0) d.status = 'SOLD_OUT';
-      saveState();
-
-      const token = 'RESQ-' + Math.random().toString(36).substring(2, 7).toUpperCase();
-      document.getElementById('claim-prod-title').innerText = d.productName;
-      document.getElementById('claim-token-display').innerText = token;
-      document.getElementById('claim-gmaps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&query=${encodeURIComponent(d.storeName)}`;
-      document.getElementById('claim-modal').classList.remove('hidden');
-
-      renderDealsFeed();
-      renderMerchantHub();
+      if (!d) return;
+      const dist = haversineDistance(state.userLat, state.userLng, d.lat, d.lng);
+      document.getElementById('modal-store-name').innerText = d.storeName;
+      document.getElementById('modal-prod-title').innerText = d.productName;
+      document.getElementById('modal-countdown').innerText = `⏳ ${d.countdown}`;
+      document.getElementById('modal-distance').innerText = `📍 ${formatDistStr(dist)}`;
+      document.getElementById('modal-gmaps-link').href = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}&query=${encodeURIComponent(d.storeName)}`;
+      document.getElementById('detail-modal').classList.remove('hidden');
       lucide.createIcons();
     }
 
-    function closeClaimModal() {
-      document.getElementById('claim-modal').classList.add('hidden');
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.add('hidden');
     }
 
     function renderMerchantHub() {
@@ -721,16 +811,94 @@
     function updateFormDates() {
       const mfg = document.getElementById('form-mfg-date').value;
       const exp = document.getElementById('form-exp-date').value;
-      document.getElementById('form-mfg-text').innerText = formatDDMonthYYYY(mfg);
-      document.getElementById('form-exp-text').innerText = formatDDMonthYYYY(exp);
-      document.getElementById('form-exp-preview').innerText = formatDDMonthYYYY(exp);
+      const hasMfgT = document.getElementById('form-has-mfg-time').checked;
+      const mfgT = hasMfgT ? document.getElementById('form-mfg-time').value : '';
+      const hasExpT = document.getElementById('form-has-exp-time').checked;
+      const expT = hasExpT ? document.getElementById('form-exp-time').value : '';
+
+      document.getElementById('form-mfg-text').innerText = formatDDMonthYYYY(mfg, mfgT);
+      document.getElementById('form-exp-text').innerText = formatDDMonthYYYY(exp, expT);
+      document.getElementById('form-exp-preview').innerText = formatDDMonthYYYY(exp, expT);
       recalculateSlider();
+    }
+
+    function previewUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          document.getElementById('form-img-preview').src = reader.result;
+          document.getElementById('form-img-url').value = reader.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function loadPreset(type) {
+      if (type === 'samosa') {
+        document.getElementById('form-name').value = 'Hot Crispy Punjabi Samosa (Set of 4)';
+        document.getElementById('form-category').value = 'Snacks';
+        document.getElementById('form-units').value = '12';
+        document.getElementById('form-price').value = '80';
+        document.getElementById('form-mfg-date').value = '2026-09-11';
+        document.getElementById('form-has-mfg-time').checked = true;
+        document.getElementById('form-mfg-time').value = '10:00';
+        document.getElementById('form-exp-date').value = '2026-09-11';
+        document.getElementById('form-has-exp-time').checked = true;
+        document.getElementById('form-exp-time').value = '20:00';
+        document.getElementById('form-img-url').value = 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-img-preview').src = 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-countdown-pill').innerText = '⏳ 4h 32m left';
+        document.getElementById('form-countdown-preview').innerText = '4h 32m left';
+      } else if (type === 'panipuri') {
+        document.getElementById('form-name').value = 'Pani Puri Combo Kit (30 Puris)';
+        document.getElementById('form-category').value = 'Snacks';
+        document.getElementById('form-units').value = '10';
+        document.getElementById('form-price').value = '120';
+        document.getElementById('form-mfg-date').value = '2026-09-11';
+        document.getElementById('form-has-mfg-time').checked = true;
+        document.getElementById('form-mfg-time').value = '11:30';
+        document.getElementById('form-exp-date').value = '2026-09-11';
+        document.getElementById('form-has-exp-time').checked = true;
+        document.getElementById('form-exp-time').value = '21:00';
+        document.getElementById('form-img-url').value = 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-img-preview').src = 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-countdown-pill').innerText = '⏳ 5h 15m left';
+        document.getElementById('form-countdown-preview').innerText = '5h 15m left';
+      } else if (type === 'vadapav') {
+        document.getElementById('form-name').value = 'Butter Vada Pav with Chutney';
+        document.getElementById('form-category').value = 'Snacks';
+        document.getElementById('form-units').value = '18';
+        document.getElementById('form-price').value = '50';
+        document.getElementById('form-mfg-date').value = '2026-09-11';
+        document.getElementById('form-has-mfg-time').checked = false;
+        document.getElementById('form-exp-date').value = '2026-09-11';
+        document.getElementById('form-has-exp-time').checked = false;
+        document.getElementById('form-img-url').value = 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-img-preview').src = 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-countdown-pill').innerText = '⏳ 6h 45m left';
+        document.getElementById('form-countdown-preview').innerText = '6h 45m left';
+      } else if (type === 'sandwich') {
+        document.getElementById('form-name').value = 'Fresh Sandwich';
+        document.getElementById('form-category').value = 'Prepared Food';
+        document.getElementById('form-units').value = '8';
+        document.getElementById('form-price').value = '60';
+        document.getElementById('form-mfg-date').value = '2026-09-10';
+        document.getElementById('form-has-mfg-time').checked = false;
+        document.getElementById('form-exp-date').value = '2026-09-12';
+        document.getElementById('form-has-exp-time').checked = false;
+        document.getElementById('form-img-url').value = 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-img-preview').src = 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80';
+        document.getElementById('form-countdown-pill').innerText = '⏳ 1 day left';
+        document.getElementById('form-countdown-preview').innerText = '1 day left';
+      }
+      updateFormDates();
     }
 
     function recalculateSlider(reset = false) {
       const orig = Math.max(5, parseInt(document.getElementById('form-price').value) || 60);
       const units = Math.max(1, parseInt(document.getElementById('form-units').value) || 8);
-      const rec = Math.max(5, Math.round(orig * 0.58)); // ~42% discount (e.g. ₹60 -> ₹35)
+      const rec = Math.max(5, Math.round(orig * 0.6));
       
       document.getElementById('form-rec-price-disp').value = `₹${rec}`;
       const slider = document.getElementById('price-range-slider');
@@ -746,7 +914,7 @@
     function onSliderMove(val) {
       document.getElementById('slider-price-val').innerText = `₹${val}`;
       const orig = Math.max(5, parseInt(document.getElementById('form-price').value) || 60);
-      const risk = val > 40 ? 92 : val === 35 ? 86 : 72;
+      const risk = val > (orig * 0.7) ? 90 : val >= (orig * 0.5) ? 78 : 65;
       document.getElementById('risk-score-badge').innerText = `Waste Risk: ${risk}% 🔴`;
       document.getElementById('risk-progress-bar').style.width = `${risk}%`;
     }
@@ -756,8 +924,8 @@
       const mfg = document.getElementById('form-mfg-date').value;
       const exp = document.getElementById('form-exp-date').value;
 
-      if (new Date(exp).getTime() <= new Date(mfg).getTime()) {
-        alert('Expiry Date must be strictly after Manufacturing Date.');
+      if (new Date(exp).getTime() < new Date(mfg).getTime()) {
+        alert('Expiry Date cannot be before Manufacturing Date.');
         return;
       }
 
@@ -766,14 +934,19 @@
       const units = parseInt(document.getElementById('form-units').value) || 8;
       const name = document.getElementById('form-name').value;
       const cat = document.getElementById('form-category').value;
+      const img = document.getElementById('form-img-url').value;
+      const hasMfgT = document.getElementById('form-has-mfg-time').checked;
+      const mfgT = hasMfgT ? document.getElementById('form-mfg-time').value : '';
+      const hasExpT = document.getElementById('form-has-exp-time').checked;
+      const expT = hasExpT ? document.getElementById('form-exp-time').value : '';
 
       state.deals.unshift({
         id: 'deal-' + Date.now(),
-        storeName: 'ABC Gourmet Bakery',
+        storeName: 'Sharma Snacks',
         category: cat,
         unit: 'pieces',
-        lat: 18.5255,
-        lng: 73.8595,
+        lat: 18.5245,
+        lng: 73.8580,
         productName: name,
         initialUnits: units,
         remainingUnits: units,
@@ -781,13 +954,13 @@
         originalPrice: orig,
         publishedPrice: sel,
         mfgDate: mfg,
-        mfgFormatted: formatDDMonthYYYY(mfg),
+        mfgFormatted: formatDDMonthYYYY(mfg, mfgT),
         expDate: exp,
-        expFormatted: formatDDMonthYYYY(exp),
-        countdown: '1 Day 5 Hours Remaining',
-        wasteRisk: 86,
+        expFormatted: formatDDMonthYYYY(exp, expT),
+        countdown: hasExpT ? '4h 32m left' : '1 day left',
+        wasteRisk: 78,
         status: 'ACTIVE',
-        imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80'
+        imageUrl: img || 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80'
       });
 
       saveState();
@@ -804,7 +977,7 @@
     }
 
     function resetData() {
-      localStorage.removeItem('resqfood_deals');
+      localStorage.removeItem('resqfood_deals_v2');
       state.deals = [...INITIAL_DEALS];
       renderDealsFeed();
       renderMerchantHub();

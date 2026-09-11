@@ -5,10 +5,10 @@ import { Navbar } from '@/components/navbar';
 import { CategoryFilter } from '@/components/consumer/category-filter';
 import { DealCard } from '@/components/consumer/deal-card';
 import { DealModal } from '@/components/consumer/deal-modal';
-import { DealsMap } from '@/components/consumer/deals-map';
 import { Deal } from '@/shared/types';
 import { loadDeals } from '@/lib/store';
 import { calculateHaversineDistance, POPULAR_LOCATIONS } from '@/lib/geo';
+import { findBestDealNearMe } from '@/lib/recommendation';
 import { 
   Sparkles, 
   Search, 
@@ -16,8 +16,6 @@ import {
   ShieldCheck, 
   Footprints,
   Compass,
-  Map as MapIcon,
-  LayoutGrid,
   Filter,
   Flame,
   ArrowUpDown
@@ -31,7 +29,6 @@ export default function HomePage() {
   const [userLocation, setUserLocation] = useState(POPULAR_LOCATIONS[0]);
   const [maxRadiusKm, setMaxRadiusKm] = useState(10.0); // Default and max 10 km
   const [isLocating, setIsLocating] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [sortBy, setSortBy] = useState<'distance' | 'discount' | 'risk'>('distance');
 
   const refreshDeals = () => {
@@ -219,7 +216,22 @@ export default function HomePage() {
             </div>
 
             {/* View Switcher & Sorter */}
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+              {/* Best Deal Near Me Quick Button */}
+              {filteredDeals.length > 0 && (() => {
+                const best = findBestDealNearMe(filteredDeals, userLocation.lat, userLocation.lng);
+                if (!best) return null;
+                return (
+                  <button
+                    onClick={() => setSelectedDeal(best.deal)}
+                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 transition-all"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 fill-current" />
+                    <span>Best Deal Near Me 🔥</span>
+                  </button>
+                );
+              })()}
+
               {/* Sort selector */}
               <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border border-zinc-200 text-xs text-zinc-700">
                 <ArrowUpDown className="w-3.5 h-3.5 text-zinc-400" />
@@ -234,33 +246,6 @@ export default function HomePage() {
                   <option value="risk">🔴 Waste Urgency</option>
                 </select>
               </div>
-
-              {/* View toggle */}
-              <div className="flex bg-zinc-200/80 p-1 rounded-xl border border-zinc-200">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-white text-zinc-900 shadow-sm'
-                      : 'text-zinc-600 hover:text-zinc-900'
-                  }`}
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>Cards</span>
-                </button>
-
-                <button
-                  onClick={() => setViewMode('map')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                    viewMode === 'map'
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'text-zinc-600 hover:text-zinc-900'
-                  }`}
-                >
-                  <MapIcon className="w-3.5 h-3.5" />
-                  <span>10 KM Map</span>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -272,28 +257,18 @@ export default function HomePage() {
           />
         </div>
 
-        {/* View Mode 1: Interactive 10 KM Google Maps Platform View */}
-        {viewMode === 'map' ? (
-          <DealsMap
-            deals={filteredDeals}
-            userLocation={userLocation}
-            maxRadiusKm={maxRadiusKm}
-            onSelectDeal={(d) => setSelectedDeal(d)}
-          />
+        {/* Canonical Deals Grid */}
+        {filteredDeals.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredDeals.map((deal) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                onOpenDetails={(d) => setSelectedDeal(d)}
+              />
+            ))}
+          </div>
         ) : (
-          /* View Mode 2: Canonical Deals Grid */
-          filteredDeals.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredDeals.map((deal) => (
-                <DealCard
-                  key={deal.id}
-                  deal={deal}
-                  onOpenDetails={(d) => setSelectedDeal(d)}
-                  onClaim={(d) => setSelectedDeal(d)}
-                />
-              ))}
-            </div>
-          ) : (
             /* Empty State / Out of Radius Notice */
             <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-zinc-200 shadow-sm max-w-lg mx-auto space-y-4 my-6">
               <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
@@ -324,7 +299,7 @@ export default function HomePage() {
               </div>
             </div>
           )
-        )}
+        }
 
         {/* Bottom Educational / Transparency Notice */}
         <section className="bg-white rounded-2xl p-5 border border-zinc-200/80 text-xs text-zinc-600 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
@@ -335,7 +310,7 @@ export default function HomePage() {
             <div>
               <p className="font-bold text-zinc-800 text-sm">ResQFood Workflow</p>
               <p className="text-zinc-500 text-xs">
-                1. Add Product ➔ 2. Manufacturing &amp; Expiry Date ➔ 3. Waste Risk ➔ 4. Smart Price ➔ 5. 10 KM Map ➔ 6. Claim Deal ➔ 7. Food Rescued.
+                1. Add Product ➔ 2. Date &amp; Time Tracking ➔ 3. Waste Risk ➔ 4. Smart Price ➔ 5. 10 KM Discovery ➔ 6. Direct Counter Walk-in ➔ 7. Zero Waste.
               </p>
             </div>
           </div>
@@ -345,12 +320,11 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Deal Details & Claim Modal */}
+      {/* Deal Details & Direct Navigation Modal */}
       {selectedDeal && (
         <DealModal
           deal={selectedDeal}
           onClose={() => setSelectedDeal(null)}
-          onClaimSuccess={refreshDeals}
         />
       )}
     </div>

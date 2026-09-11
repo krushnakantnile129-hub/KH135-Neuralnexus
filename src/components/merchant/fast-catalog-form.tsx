@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { StoreCategory, ProductUnit, SalesVelocity, Deal } from '@/shared/types';
 import { evaluateWasteRisk } from '@/shared/engine/wasteRisk';
@@ -22,7 +22,11 @@ import {
   Eye,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -56,56 +60,122 @@ export function FastCatalogForm() {
 
   // Form State: 1. Product Information
   const [selectedStoreId, setSelectedStoreId] = useState(defaultStore.id);
-  const [productName, setProductName] = useState('Fresh Sandwich');
-  const [category, setCategory] = useState<StoreCategory>('Prepared Food');
-  const [description, setDescription] = useState('Triple decker multigrain bread, fresh lettuce, cheddar cheese, and garden cucumber.');
-  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80');
-  const [quantity, setQuantity] = useState(8);
+  const [productName, setProductName] = useState('Hot Crispy Punjabi Samosa');
+  const [category, setCategory] = useState<StoreCategory>('Snacks');
+  const [description, setDescription] = useState('Crispy golden potato-peas stuffed samosas served with sweet tamarind and spicy mint chutneys.');
+  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80');
+  const [quantity, setQuantity] = useState(15);
   const [unit, setUnit] = useState<ProductUnit>('pieces');
 
   // Form State: 2. Pricing Information
-  const [originalPrice, setOriginalPrice] = useState(60);
+  const [originalPrice, setOriginalPrice] = useState(80);
   const [customPrice, setCustomPrice] = useState<number | null>(null);
 
-  // Form State: 3. Manufacturing & Expiry Date (DD Month YYYY)
-  const [manufacturingDate, setManufacturingDate] = useState('2026-09-10');
-  const [expiryDate, setExpiryDate] = useState('2026-09-12');
+  // Form State: 3. Manufacturing & Expiry Date with OPTIONAL Time
+  const [manufacturingDate, setManufacturingDate] = useState('2026-09-11');
+  const [hasMfgTime, setHasMfgTime] = useState(true);
+  const [manufacturingTime, setManufacturingTime] = useState('10:00');
+
+  const [expiryDate, setExpiryDate] = useState('2026-09-11');
+  const [hasExpTime, setHasExpTime] = useState(true);
+  const [expiryTime, setExpiryTime] = useState('20:00');
 
   // Form State: 4. Sales Velocity
-  const [salesVelocity, setSalesVelocity] = useState<SalesVelocity>('LOW');
-  const [salesVelocityNumeric, setSalesVelocityNumeric] = useState(1.5);
-  const [unitsSoldToday, setUnitsSoldToday] = useState(4);
-  const [expectedDemand, setExpectedDemand] = useState(8);
+  const [salesVelocity, setSalesVelocity] = useState<SalesVelocity>('MEDIUM');
+  const [salesVelocityNumeric, setSalesVelocityNumeric] = useState(2.5);
+  const [unitsSoldToday, setUnitsSoldToday] = useState(6);
+  const [expectedDemand, setExpectedDemand] = useState(15);
 
   // UI state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [hasCustomPhoto, setHasCustomPhoto] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Real-time evaluation taking active selected price
   const activeEvaluation = useMemo(() => {
-    const p = customPrice !== null ? customPrice : 35;
+    const p = customPrice !== null ? customPrice : 48;
     return evaluateWasteRisk({
       quantity: Math.max(1, quantity),
       originalPrice: Math.max(5, originalPrice),
       selectedPrice: p,
       manufacturingDate,
+      manufacturingTime: hasMfgTime ? manufacturingTime : undefined,
+      hasManufacturingTime: hasMfgTime,
       expiryDate,
+      expiryTime: hasExpTime ? expiryTime : undefined,
+      hasExpiryTime: hasExpTime,
       salesVelocity,
       salesVelocityNumeric,
       unitsSoldToday,
       expectedDemand,
       category,
     });
-  }, [quantity, originalPrice, customPrice, manufacturingDate, expiryDate, salesVelocity, salesVelocityNumeric, unitsSoldToday, expectedDemand, category]);
+  }, [quantity, originalPrice, customPrice, manufacturingDate, manufacturingTime, hasMfgTime, expiryDate, expiryTime, hasExpTime, salesVelocity, salesVelocityNumeric, unitsSoldToday, expectedDemand, category]);
 
   const activePrice = customPrice !== null ? customPrice : activeEvaluation.recommendedPrice;
 
   // Calculate discount percentage
   const discountPct = Math.max(0, Math.round(((originalPrice - activePrice) / originalPrice) * 100));
 
-  // Quick Preset Handlers
+  // Quick Preset Handlers for Local Vendors
+  const applySamosaPreset = () => {
+    setProductName('Hot Crispy Punjabi Samosa');
+    setCategory('Snacks');
+    setImageUrl('https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80');
+    setDescription('Crispy golden potato-peas stuffed samosas served with sweet tamarind and spicy mint chutneys.');
+    setQuantity(15);
+    setUnit('pieces');
+    setOriginalPrice(80);
+    setManufacturingDate('2026-09-11');
+    setHasMfgTime(true);
+    setManufacturingTime('10:00');
+    setExpiryDate('2026-09-11');
+    setHasExpTime(true);
+    setExpiryTime('20:00');
+    setSalesVelocity('MEDIUM');
+    setSalesVelocityNumeric(2.5);
+    setCustomPrice(48);
+  };
+
+  const applyPaniPuriPreset = () => {
+    setProductName('Pani Puri Combo Kit (30 Puris)');
+    setCategory('Snacks');
+    setImageUrl('https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80');
+    setDescription('Fresh crispy semolina puris with flavored mint water and sweet date chutney.');
+    setQuantity(12);
+    setUnit('packs');
+    setOriginalPrice(120);
+    setManufacturingDate('2026-09-11');
+    setHasMfgTime(true);
+    setManufacturingTime('11:30');
+    setExpiryDate('2026-09-11');
+    setHasExpTime(true);
+    setExpiryTime('21:00');
+    setSalesVelocity('HIGH');
+    setSalesVelocityNumeric(3.5);
+    setCustomPrice(60);
+  };
+
+  const applyVadaPavPreset = () => {
+    setProductName('Butter Vada Pav with Chutney');
+    setCategory('Snacks');
+    setImageUrl('https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80');
+    setDescription('Spiced potato batata vada inside freshly baked pav with garlic chutney.');
+    setQuantity(20);
+    setUnit('pieces');
+    setOriginalPrice(50);
+    setManufacturingDate('2026-09-11');
+    setHasMfgTime(false);
+    setExpiryDate('2026-09-11');
+    setHasExpTime(false);
+    setSalesVelocity('HIGH');
+    setSalesVelocityNumeric(4.0);
+    setCustomPrice(30);
+  };
+
   const applySandwichPreset = () => {
     setProductName('Fresh Sandwich');
     setCategory('Prepared Food');
@@ -115,7 +185,9 @@ export function FastCatalogForm() {
     setUnit('pieces');
     setOriginalPrice(60);
     setManufacturingDate('2026-09-10');
+    setHasMfgTime(false);
     setExpiryDate('2026-09-12');
+    setHasExpTime(false);
     setSalesVelocity('LOW');
     setSalesVelocityNumeric(1.5);
     setCustomPrice(35);
@@ -130,31 +202,61 @@ export function FastCatalogForm() {
     setUnit('packs');
     setOriginalPrice(220);
     setManufacturingDate('2026-09-10');
+    setHasMfgTime(false);
     setExpiryDate('2026-09-13');
+    setHasExpTime(false);
     setSalesVelocity('MEDIUM');
     setSalesVelocityNumeric(2.5);
     setCustomPrice(110);
+    setHasCustomPhoto(true);
   };
 
-  const applyBakeryPreset = () => {
-    setProductName('Artisanal Sourdough Country Loaf');
-    setCategory('Bakery');
-    setImageUrl(CATEGORY_IMAGES['Bakery']);
-    setDescription('Slow fermented 24-hour crusty sourdough with soft open crumb.');
-    setQuantity(15);
-    setUnit('pieces');
-    setOriginalPrice(160);
-    setManufacturingDate('2026-09-10');
-    setExpiryDate('2026-09-12');
-    setSalesVelocity('LOW');
-    setSalesVelocityNumeric(1.5);
-    setCustomPrice(80);
+  // Image file upload handler (Supports JPG, JPEG, PNG, WebP up to 5MB)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate MIME type / extension
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+    const hasValidExt = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+    
+    if (!validTypes.includes(file.type) && !hasValidExt) {
+      setValidationError('Please upload a valid image file (JPG, JPEG, PNG, or WebP).');
+      return;
+    }
+
+    // Validate size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setValidationError('Image size exceeds 5MB. Please choose a smaller photo.');
+      return;
+    }
+
+    setValidationError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImageUrl(reader.result);
+        setHasCustomPhoto(true);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  // Category change auto-updates default image
+  const handleRemovePhoto = () => {
+    setImageUrl(CATEGORY_IMAGES[category] || CATEGORY_IMAGES['Other']);
+    setHasCustomPhoto(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Category change auto-updates default image if not customized
   const handleCategoryChange = (newCat: StoreCategory) => {
     setCategory(newCat);
-    setImageUrl(CATEGORY_IMAGES[newCat] || CATEGORY_IMAGES['Other']);
+    if (!hasCustomPhoto) {
+      setImageUrl(CATEGORY_IMAGES[newCat] || CATEGORY_IMAGES['Other']);
+    }
   };
 
   // Validation
@@ -178,16 +280,24 @@ export function FastCatalogForm() {
       return false;
     }
 
-    const mfgTime = new Date(manufacturingDate).getTime();
-    const expTime = new Date(expiryDate).getTime();
+    const mfgIso = hasMfgTime && manufacturingTime ? `${manufacturingDate}T${manufacturingTime}:00` : `${manufacturingDate}T00:00:00`;
+    const expIso = hasExpTime && expiryTime ? `${expiryDate}T${expiryTime}:00` : `${expiryDate}T23:59:59.999`;
+
+    const mfgTime = new Date(mfgIso).getTime();
+    const expTime = new Date(expIso).getTime();
+
+    if (manufacturingDate > expiryDate) {
+      setValidationError('Manufacturing Date cannot be after Expiry Date.');
+      return false;
+    }
 
     if (expTime <= mfgTime) {
-      setValidationError('Expiry Date must be strictly after the Manufacturing Date.');
+      setValidationError('Expiry Date/Time must be after the Manufacturing Date/Time.');
       return false;
     }
 
     if (activeEvaluation.isExpired) {
-      setValidationError('Product is marked as expired based on current date. Please set a future Expiry Date.');
+      setValidationError('Product has already expired based on current date & time. Please set a future Expiry Date.');
       return false;
     }
 
@@ -204,6 +314,7 @@ export function FastCatalogForm() {
   const handleFinalPublish = () => {
     setIsSubmitting(true);
     const store = stores.find(s => s.id === selectedStoreId) || defaultStore;
+    const deadlineIso = hasExpTime && expiryTime ? `${expiryDate}T${expiryTime}:00` : `${expiryDate}T23:59:59.999`;
 
     const newDeal: Deal = {
       id: `deal-${Date.now()}`,
@@ -227,11 +338,15 @@ export function FastCatalogForm() {
       publishedPrice: activePrice,
       discountPct,
       manufacturingDate,
+      manufacturingTime: hasMfgTime ? manufacturingTime : undefined,
+      hasManufacturingTime: hasMfgTime,
       manufacturingDateFormatted: activeEvaluation.manufacturingDateFormatted,
       expiryDate,
+      expiryTime: hasExpTime ? expiryTime : undefined,
+      hasExpiryTime: hasExpTime,
       expiryDateFormatted: activeEvaluation.expiryDateFormatted,
       expiryCountdownFormatted: activeEvaluation.expiryCountdownFormatted,
-      deadline: new Date(`${expiryDate}T23:59:59.999`).toISOString(),
+      deadline: new Date(deadlineIso).toISOString(),
       salesVelocity,
       salesVelocityNumeric,
       unitsSoldToday,
@@ -262,33 +377,40 @@ export function FastCatalogForm() {
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-emerald-300" />
-            ResQFood Quick Test Presets
+            Local Vendor Quick Presets
           </span>
           <p className="text-xs text-zinc-300 mt-1 max-w-lg">
-            Populate sample products with Manufacturing &amp; Expiry dates (`DD Month YYYY`) to test live countdowns and rule-based waste risk scoring.
+            Test local vendor items (Samosa, Pani Puri, Vada Pav, Sandwich) with required Date &amp; <em>Optional Time</em> pickers (`DD Month YYYY`).
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={applySamosaPreset}
+            className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
+          >
+            🥟 Samosa (Sharma Snacks)
+          </button>
+          <button
+            type="button"
+            onClick={applyPaniPuriPreset}
+            className="px-3 py-1.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
+          >
+            🥣 Pani Puri (Ganesh)
+          </button>
+          <button
+            type="button"
+            onClick={applyVadaPavPreset}
+            className="px-3 py-1.5 rounded-xl bg-orange-400 hover:bg-orange-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
+          >
+            🍔 Vada Pav (Date Only)
+          </button>
+          <button
+            type="button"
             onClick={applySandwichPreset}
-            className="px-3.5 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
+            className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
           >
-            🥪 Fresh Sandwich (₹35 / 86% Risk)
-          </button>
-          <button
-            type="button"
-            onClick={applyDairyPreset}
-            className="px-3.5 py-2 rounded-xl bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
-          >
-            🥛 Paneer (Dairy 50% Off)
-          </button>
-          <button
-            type="button"
-            onClick={applyBakeryPreset}
-            className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
-          >
-            🥐 Sourdough (Bakery)
+            🥪 Sandwich (ABC Bakery)
           </button>
         </div>
       </div>
@@ -319,7 +441,7 @@ export function FastCatalogForm() {
 
             {/* Store Outlet Picker */}
             <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-1">Select Outlet / Location *</label>
+              <label className="block text-xs font-bold text-zinc-700 mb-1">Select Outlet / Vendor *</label>
               <select
                 value={selectedStoreId}
                 onChange={(e) => setSelectedStoreId(e.target.value)}
@@ -339,7 +461,7 @@ export function FastCatalogForm() {
                 required
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                placeholder="e.g. Fresh Sandwich, Chocolate Croissant, Whole Milk"
+                placeholder="e.g. Punjabi Samosa, Pani Puri Kit, Vada Pav, Fresh Sandwich"
                 className="w-full px-3.5 py-2.5 text-sm font-semibold border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none placeholder:text-zinc-400 text-zinc-900"
               />
             </div>
@@ -362,6 +484,88 @@ export function FastCatalogForm() {
                     {cat}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Product Photo Upload & Live Preview */}
+            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-900">Product Photo</label>
+                  <p className="text-[11px] text-zinc-500">
+                    Supports JPG, JPEG, PNG, and WebP (Max 5MB).
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-200 text-zinc-700">
+                  {hasCustomPhoto ? 'Custom Photo Attached' : 'Default Category Image'}
+                </span>
+              </div>
+
+              {/* Photo Preview & Upload Controls */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3.5 rounded-xl border border-zinc-200">
+                {/* Image Preview Box */}
+                <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-300 shrink-0 group">
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt="Product preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-zinc-400 bg-zinc-100">
+                      <ImageIcon className="w-8 h-8 opacity-40" />
+                      <span className="text-[9px] mt-1">No Photo</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Action Buttons */}
+                <div className="flex-1 w-full space-y-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Product Photo</span>
+                    </button>
+
+                    {hasCustomPhoto && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-3 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold flex items-center gap-1 transition-colors"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Replace</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Remove</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  <p className="text-[10px] text-zinc-400">
+                    If no photo is selected, a clean placeholder for <strong>{category}</strong> will be used.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -405,13 +609,13 @@ export function FastCatalogForm() {
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Details about ingredients, packaging, storage recommendations..."
+                placeholder="Details about freshly made items, preparation, ingredients..."
                 className="w-full px-3.5 py-2 text-xs border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800 resize-none"
               />
             </div>
           </div>
 
-          {/* Section 2: Manufacturing & Expiry Date Pickers (DD Month YYYY) */}
+          {/* Section 2: Manufacturing & Expiry Date Pickers with OPTIONAL Time */}
           <div className="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -419,7 +623,7 @@ export function FastCatalogForm() {
                 <h2 className="font-extrabold text-sm text-zinc-900 uppercase tracking-wide">2. Manufacturing &amp; Expiry Dates</h2>
               </div>
               <span className="text-xs font-mono font-bold text-emerald-700">
-                DD Month YYYY Format
+                DD Month YYYY (Time Optional)
               </span>
             </div>
 
@@ -437,7 +641,7 @@ export function FastCatalogForm() {
                 </span>
                 <div>
                   <div className="font-extrabold text-xs flex items-center gap-2">
-                    <span>Expires on: <strong>{activeEvaluation.expiryDateFormatted}</strong></span>
+                    <span>Expires: <strong>{activeEvaluation.expiryDateFormatted}</strong></span>
                   </div>
                   <p className="text-[11px] opacity-80 mt-0.5">
                     Live Countdown: <strong className="font-mono font-black">{activeEvaluation.expiryCountdownFormatted}</strong>
@@ -449,41 +653,105 @@ export function FastCatalogForm() {
               </span>
             </div>
 
-            {/* Manufacturing & Expiry Date Pickers */}
+            {/* Manufacturing & Expiry Date Pickers with Optional Times */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200 space-y-1.5">
-                <label className="block text-xs font-bold text-zinc-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                  Manufacturing Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={manufacturingDate}
-                  onChange={(e) => setManufacturingDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono font-bold border border-zinc-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
-                />
+              
+              {/* Manufacturing Date & Optional Time */}
+              <div className="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200 space-y-2.5">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 flex items-center gap-1.5 mb-1">
+                    <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                    Manufacturing Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={manufacturingDate}
+                    onChange={(e) => setManufacturingDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-mono font-bold border border-zinc-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
+                  />
+                </div>
+
+                {/* Optional Manufacturing Time */}
+                <div className="pt-2 border-t border-zinc-200/60">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-zinc-600 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-zinc-400" />
+                      <span>Optional Time:</span>
+                    </label>
+                    <label className="text-[10px] flex items-center gap-1 font-semibold text-zinc-500 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasMfgTime}
+                        onChange={(e) => setHasMfgTime(e.target.checked)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>Include Time</span>
+                    </label>
+                  </div>
+                  {hasMfgTime && (
+                    <input
+                      type="time"
+                      value={manufacturingTime}
+                      onChange={(e) => setManufacturingTime(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-zinc-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
+                    />
+                  )}
+                </div>
+
                 <p className="text-[11px] text-zinc-500 font-semibold pt-1">
-                  📅 Made: <strong className="text-zinc-800">{formatDisplayDate(manufacturingDate)}</strong>
+                  📅 Manufactured: <strong className="text-zinc-900">{activeEvaluation.manufacturingDateFormatted}</strong>
                 </p>
               </div>
 
-              <div className="bg-emerald-50/40 p-3.5 rounded-2xl border border-emerald-200 space-y-1.5">
-                <label className="block text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-700" />
-                  Expiry Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono font-bold border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
-                />
+              {/* Expiry Date & Optional Time */}
+              <div className="bg-emerald-50/40 p-3.5 rounded-2xl border border-emerald-200 space-y-2.5">
+                <div>
+                  <label className="block text-xs font-bold text-emerald-900 flex items-center gap-1.5 mb-1">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                    Expiry Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-mono font-bold border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
+                  />
+                </div>
+
+                {/* Optional Expiry Time */}
+                <div className="pt-2 border-t border-emerald-200/60">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-emerald-900 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-emerald-600" />
+                      <span>Optional Time:</span>
+                    </label>
+                    <label className="text-[10px] flex items-center gap-1 font-semibold text-emerald-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasExpTime}
+                        onChange={(e) => setHasExpTime(e.target.checked)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>Include Time</span>
+                    </label>
+                  </div>
+                  {hasExpTime && (
+                    <input
+                      type="time"
+                      value={expiryTime}
+                      onChange={(e) => setExpiryTime(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs font-mono font-bold border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
+                    />
+                  )}
+                </div>
+
                 <p className="text-[11px] text-emerald-800 font-semibold pt-1">
-                  📅 Expires: <strong className="text-emerald-950">{formatDisplayDate(expiryDate)}</strong>
+                  📅 Expires: <strong className="text-emerald-950">{activeEvaluation.expiryDateFormatted}</strong>
                 </p>
               </div>
+
             </div>
 
             {/* Sales Velocity Rate */}
