@@ -141,6 +141,67 @@ export function markDealAllSold(dealId: string): Deal | null {
   return deals[index];
 }
 
+const CLAIMS_KEY = 'savebite_claims_v1';
+
+export function claimDeal(dealId: string, unitsToClaim: number = 1) {
+  const deals = loadDeals();
+  const index = deals.findIndex(d => d.id === dealId);
+  if (index === -1) return { success: false, message: 'Deal not found' };
+
+  const deal = deals[index];
+  if (deal.status !== 'ACTIVE' || deal.remainingUnits <= 0) {
+    return { success: false, message: 'Deal is no longer available or already sold out.' };
+  }
+
+  const claimCount = Math.min(deal.remainingUnits, unitsToClaim);
+  const remainingUnits = Math.max(0, deal.remainingUnits - claimCount);
+  const soldUnits = deal.soldUnits + claimCount;
+  const claimedUnits = (deal.claimedUnits || 0) + claimCount;
+  const status: DealStatus = remainingUnits === 0 ? 'SOLD_OUT' : deal.status;
+
+  const token = 'RESQ-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+  const claimRecord = {
+    id: 'claim-' + Date.now(),
+    dealId: deal.id,
+    claimToken: token,
+    productName: deal.productName,
+    storeName: deal.storeName,
+    storeAddress: deal.storeAddress,
+    quantity: claimCount,
+    discountedPrice: deal.publishedPrice,
+    claimedAt: new Date().toISOString(),
+    expiresAt: deal.deadline,
+    status: 'RESERVED' as const,
+  };
+
+  deals[index] = {
+    ...deal,
+    remainingUnits,
+    soldUnits,
+    claimedUnits,
+    status,
+    updatedAt: new Date().toISOString(),
+  };
+  saveDeals(deals);
+
+  if (isBrowser()) {
+    try {
+      const existing = JSON.parse(localStorage.getItem(CLAIMS_KEY) || '[]');
+      existing.unshift(claimRecord);
+      localStorage.setItem(CLAIMS_KEY, JSON.stringify(existing));
+    } catch (e) {
+      console.error('Error saving claim', e);
+    }
+  }
+
+  return {
+    success: true,
+    claim: claimRecord,
+    deal: deals[index],
+  };
+}
+
+
 export function computeMerchantMetrics(storeId?: string): MerchantMetrics {
   const deals = loadDeals().filter(d => (!storeId || d.storeId === storeId));
   

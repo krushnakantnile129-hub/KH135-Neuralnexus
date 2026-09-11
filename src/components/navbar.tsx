@@ -71,14 +71,14 @@ export function Navbar({
             <div className="flex items-center gap-6">
               <Link href="/" className="flex items-center gap-2 group">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                  <span className="text-xl">🌿</span>
+                  <span className="text-xl">🥗</span>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xl tracking-tight text-zinc-900">SAVE-BITE</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">Zero-Checkout</span>
+                    <span className="font-extrabold text-xl tracking-tight text-zinc-900">ResQFood</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">10 KM Proximity</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 font-medium leading-none hidden sm:block">Hyper-Local Surplus Food Marketplace</p>
+                  <p className="text-[11px] text-zinc-500 font-medium leading-none hidden sm:block">Food-Waste Reduction &amp; Smart Pricing</p>
                 </div>
               </Link>
 

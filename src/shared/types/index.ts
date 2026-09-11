@@ -40,6 +40,20 @@ export interface Store {
   createdAt: string;
 }
 
+export interface DealClaim {
+  id: string;
+  dealId: string;
+  claimToken: string;
+  productName: string;
+  storeName: string;
+  storeAddress: string;
+  quantity: number;
+  discountedPrice: number;
+  claimedAt: string;
+  expiresAt: string;
+  status: 'RESERVED' | 'COLLECTED' | 'EXPIRED';
+}
+
 export interface Deal {
   id: string;
   storeId: string;
@@ -58,6 +72,7 @@ export interface Deal {
   initialUnits: number;
   remainingUnits: number;
   soldUnits: number;
+  claimedUnits?: number;
   unit?: ProductUnit;
   
   // Pricing Information
@@ -66,7 +81,15 @@ export interface Deal {
   publishedPrice: number;
   discountPct: number;
   
-  // Time & Expiry Information
+  // Date & Expiry Information (DD Month YYYY)
+  manufacturingDate?: string; // YYYY-MM-DD
+  manufacturingDateFormatted?: string; // e.g. 10 September 2026
+  expiryDate?: string; // YYYY-MM-DD or ISO
+  expiryDateFormatted?: string; // e.g. 12 September 2026
+  expiryCountdownFormatted?: string; // e.g. 1 Day 5 Hours Remaining
+  isExpired?: boolean;
+  
+  // Legacy / granular time support
   prepDate?: string;
   prepTime?: string;
   prepDateTimeIso?: string;
@@ -83,6 +106,7 @@ export interface Deal {
   unitsSoldToday?: number;
   expectedDemand?: number;
   wasteRiskScore: number;
+  wasteRiskPercentage?: number; // e.g. 86
   estimatedRiskScore?: number;
   riskLevel?: RiskLevel;
   urgencyLevel?: 'Low' | 'Medium' | 'High' | 'Critical' | 'Expired';
@@ -99,7 +123,9 @@ export interface RiskInput {
   quantity: number;
   originalPrice: number;
   selectedPrice: number;
-  deadlineIso: string;
+  deadlineIso?: string;
+  manufacturingDate?: string;
+  expiryDate?: string;
   salesVelocity: SalesVelocity;
   salesVelocityNumeric?: number;
   unitsSoldToday?: number;
@@ -112,6 +138,7 @@ export interface RiskInput {
 
 export interface RiskEvaluationResult {
   wasteRiskScore: number;
+  wasteRiskPercentage: number;
   estimatedRiskScore: number;
   riskLevel: RiskLevel;
   urgencyLevel: 'Low' | 'Medium' | 'High' | 'Critical' | 'Expired';
@@ -120,10 +147,17 @@ export interface RiskEvaluationResult {
   explanation: string;
   pricingExplanation: string;
   reasons: string[];
+  primaryReason: string;
   warningNotice?: string;
   
-  // Remaining life metrics
+  // Date & Remaining life metrics
+  manufacturingDateFormatted: string;
+  expiryDateFormatted: string;
+  expiryCountdownFormatted: string;
+  isExpired: boolean;
   remainingLifeMinutes: number;
+  remainingLifeDays: number;
+  totalLifeDays: number;
   remainingLifeFormatted: string;
   timeRemainingFormatted?: string;
   remainingLifePct: number;

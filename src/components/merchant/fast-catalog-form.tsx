@@ -7,7 +7,7 @@ import { evaluateWasteRisk } from '@/shared/engine/wasteRisk';
 import { PriceSlider } from './price-slider';
 import { RiskMeter } from './risk-meter';
 import { addDeal, loadStores } from '@/lib/store';
-import { formatINR } from '@/lib/utils';
+import { formatINR, formatDisplayDate, formatExpiryCountdown } from '@/lib/utils';
 import {
   Sparkles,
   Zap,
@@ -32,8 +32,6 @@ const CATEGORY_IMAGES: Record<string, string> = {
   'Snacks': 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80',
   'Beverages': 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80',
   'Other': 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&auto=format&fit=crop&q=80',
-  'DAIRY': 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80',
-  'BAKERY': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80',
 };
 
 export function FastCatalogForm() {
@@ -51,42 +49,33 @@ export function FastCatalogForm() {
 
   // Helper date strings
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  const nowTimeStr = useMemo(() => {
-    const d = new Date();
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  }, []);
-  const defaultBestBeforeTime = useMemo(() => {
-    const d = new Date(Date.now() + 120 * 60 * 1000); // 2 hours from now
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const twoDaysLaterStr = useMemo(() => {
+    const d = new Date(Date.now() + 2 * 24 * 3600000);
+    return d.toISOString().split('T')[0];
   }, []);
 
   // Form State: 1. Product Information
   const [selectedStoreId, setSelectedStoreId] = useState(defaultStore.id);
-  const [productName, setProductName] = useState('Fresh Organic Malai Paneer (500g)');
-  const [category, setCategory] = useState<StoreCategory>('Dairy');
-  const [description, setDescription] = useState('Fresh farm-sourced cottage cheese prepared this morning. High protein, tender texture.');
-  const [imageUrl, setImageUrl] = useState(CATEGORY_IMAGES['Dairy']);
-  const [quantity, setQuantity] = useState(12);
-  const [unit, setUnit] = useState<ProductUnit>('packs');
+  const [productName, setProductName] = useState('Fresh Sandwich');
+  const [category, setCategory] = useState<StoreCategory>('Prepared Food');
+  const [description, setDescription] = useState('Triple decker multigrain bread, fresh lettuce, cheddar cheese, and garden cucumber.');
+  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80');
+  const [quantity, setQuantity] = useState(8);
+  const [unit, setUnit] = useState<ProductUnit>('pieces');
 
   // Form State: 2. Pricing Information
-  const [originalPrice, setOriginalPrice] = useState(220);
+  const [originalPrice, setOriginalPrice] = useState(60);
   const [customPrice, setCustomPrice] = useState<number | null>(null);
 
-  // Form State: 3. Time & Expiry Information
-  const [prepDate, setPrepDate] = useState(todayStr);
-  const [prepTime, setPrepTime] = useState('07:30');
-  const [bestBeforeDate, setBestBeforeDate] = useState(todayStr);
-  const [bestBeforeTime, setBestBeforeTime] = useState(defaultBestBeforeTime);
-  const [hasExpiryDate, setHasExpiryDate] = useState(false);
-  const [expiryDate, setExpiryDate] = useState(todayStr);
-  const [expiryTime, setExpiryTime] = useState('23:00');
+  // Form State: 3. Manufacturing & Expiry Date (DD Month YYYY)
+  const [manufacturingDate, setManufacturingDate] = useState('2026-09-10');
+  const [expiryDate, setExpiryDate] = useState('2026-09-12');
 
-  // Form State: 4. Inventory & Sales Velocity
-  const [unitsSoldToday, setUnitsSoldToday] = useState(8);
-  const [expectedDemand, setExpectedDemand] = useState(15);
-  const [salesVelocity, setSalesVelocity] = useState<SalesVelocity>('MEDIUM');
-  const [salesVelocityNumeric, setSalesVelocityNumeric] = useState(2.0);
+  // Form State: 4. Sales Velocity
+  const [salesVelocity, setSalesVelocity] = useState<SalesVelocity>('LOW');
+  const [salesVelocityNumeric, setSalesVelocityNumeric] = useState(1.5);
+  const [unitsSoldToday, setUnitsSoldToday] = useState(4);
+  const [expectedDemand, setExpectedDemand] = useState(8);
 
   // UI state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -94,69 +83,44 @@ export function FastCatalogForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // Compute selling deadline ISO from bestBeforeDate and bestBeforeTime
-  const deadlineIso = useMemo(() => {
-    try {
-      const dt = new Date(`${bestBeforeDate}T${bestBeforeTime}:00`);
-      if (isNaN(dt.getTime())) {
-        return new Date(Date.now() + 120 * 60 * 1000).toISOString();
-      }
-      return dt.toISOString();
-    } catch {
-      return new Date(Date.now() + 120 * 60 * 1000).toISOString();
-    }
-  }, [bestBeforeDate, bestBeforeTime]);
-
-  const prepDateTimeIso = useMemo(() => {
-    try {
-      return new Date(`${prepDate}T${prepTime}:00`).toISOString();
-    } catch {
-      return new Date().toISOString();
-    }
-  }, [prepDate, prepTime]);
-
-  // Waste Risk Evaluation based on current parameters
-  const evaluation = useMemo(() => {
-    return evaluateWasteRisk({
-      quantity: Math.max(1, quantity),
-      originalPrice: Math.max(5, originalPrice),
-      selectedPrice: customPrice !== null ? customPrice : originalPrice,
-      deadlineIso,
-      prepDateTimeIso,
-      salesVelocity,
-      salesVelocityNumeric,
-      unitsSoldToday,
-      expectedDemand,
-      prepDate,
-      prepTime,
-      category,
-    });
-  }, [quantity, originalPrice, customPrice, deadlineIso, prepDateTimeIso, salesVelocity, salesVelocityNumeric, unitsSoldToday, expectedDemand, prepDate, prepTime, category]);
-
-  const activePrice = customPrice !== null ? customPrice : evaluation.recommendedPrice;
-
   // Real-time evaluation taking active selected price
   const activeEvaluation = useMemo(() => {
+    const p = customPrice !== null ? customPrice : 35;
     return evaluateWasteRisk({
       quantity: Math.max(1, quantity),
       originalPrice: Math.max(5, originalPrice),
-      selectedPrice: activePrice,
-      deadlineIso,
-      prepDateTimeIso,
+      selectedPrice: p,
+      manufacturingDate,
+      expiryDate,
       salesVelocity,
       salesVelocityNumeric,
       unitsSoldToday,
       expectedDemand,
-      prepDate,
-      prepTime,
       category,
     });
-  }, [quantity, originalPrice, activePrice, deadlineIso, prepDateTimeIso, salesVelocity, salesVelocityNumeric, unitsSoldToday, expectedDemand, prepDate, prepTime, category]);
+  }, [quantity, originalPrice, customPrice, manufacturingDate, expiryDate, salesVelocity, salesVelocityNumeric, unitsSoldToday, expectedDemand, category]);
+
+  const activePrice = customPrice !== null ? customPrice : activeEvaluation.recommendedPrice;
 
   // Calculate discount percentage
   const discountPct = Math.max(0, Math.round(((originalPrice - activePrice) / originalPrice) * 100));
 
   // Quick Preset Handlers
+  const applySandwichPreset = () => {
+    setProductName('Fresh Sandwich');
+    setCategory('Prepared Food');
+    setImageUrl('https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80');
+    setDescription('Triple decker multigrain bread, garden lettuce, cucumber, cheddar cheese, and fresh herb spread.');
+    setQuantity(8);
+    setUnit('pieces');
+    setOriginalPrice(60);
+    setManufacturingDate('2026-09-10');
+    setExpiryDate('2026-09-12');
+    setSalesVelocity('LOW');
+    setSalesVelocityNumeric(1.5);
+    setCustomPrice(35);
+  };
+
   const applyDairyPreset = () => {
     setProductName('Fresh Organic Malai Paneer (500g)');
     setCategory('Dairy');
@@ -165,13 +129,10 @@ export function FastCatalogForm() {
     setQuantity(12);
     setUnit('packs');
     setOriginalPrice(220);
-    setUnitsSoldToday(8);
-    setExpectedDemand(16);
+    setManufacturingDate('2026-09-10');
+    setExpiryDate('2026-09-13');
     setSalesVelocity('MEDIUM');
     setSalesVelocityNumeric(2.5);
-    const d = new Date(Date.now() + 90 * 60 * 1000);
-    setBestBeforeDate(d.toISOString().split('T')[0]);
-    setBestBeforeTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
     setCustomPrice(110);
   };
 
@@ -183,32 +144,11 @@ export function FastCatalogForm() {
     setQuantity(15);
     setUnit('pieces');
     setOriginalPrice(160);
-    setUnitsSoldToday(5);
-    setExpectedDemand(12);
+    setManufacturingDate('2026-09-10');
+    setExpiryDate('2026-09-12');
     setSalesVelocity('LOW');
     setSalesVelocityNumeric(1.5);
-    const d = new Date(Date.now() + 60 * 60 * 1000);
-    setBestBeforeDate(d.toISOString().split('T')[0]);
-    setBestBeforeTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
     setCustomPrice(80);
-  };
-
-  const applyPreparedFoodPreset = () => {
-    setProductName('Paneer Butter Masala & Paratha Meal Box');
-    setCategory('Prepared Food');
-    setImageUrl(CATEGORY_IMAGES['Prepared Food']);
-    setDescription('Hot lunch combo box prepared at noon with rich gravy and 3 butter parathas.');
-    setQuantity(18);
-    setUnit('boxes');
-    setOriginalPrice(180);
-    setUnitsSoldToday(14);
-    setExpectedDemand(20);
-    setSalesVelocity('HIGH');
-    setSalesVelocityNumeric(4.0);
-    const d = new Date(Date.now() + 45 * 60 * 1000);
-    setBestBeforeDate(d.toISOString().split('T')[0]);
-    setBestBeforeTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
-    setCustomPrice(90);
   };
 
   // Category change auto-updates default image
@@ -220,8 +160,8 @@ export function FastCatalogForm() {
   // Validation
   const validateForm = (): boolean => {
     setValidationError(null);
-    if (!productName.trim() || productName.trim().length < 3) {
-      setValidationError('Product name must be at least 3 characters long.');
+    if (!productName.trim() || productName.trim().length < 2) {
+      setValidationError('Product name must be at least 2 characters long.');
       return false;
     }
     if (quantity <= 0) {
@@ -233,16 +173,21 @@ export function FastCatalogForm() {
       return false;
     }
 
-    const prepDateTime = new Date(`${prepDate}T${prepTime}:00`);
-    const bestBeforeDateTime = new Date(`${bestBeforeDate}T${bestBeforeTime}:00`);
-
-    if (bestBeforeDateTime.getTime() <= prepDateTime.getTime()) {
-      setValidationError('Best Before Date/Time must be after Preparation Date/Time.');
+    if (!manufacturingDate || !expiryDate) {
+      setValidationError('Please specify both Manufacturing Date and Expiry Date.');
       return false;
     }
 
-    if (activeEvaluation.windowStatus === 'expired') {
-      setValidationError('Selling deadline cannot be in the past. Please set a future Best Before time.');
+    const mfgTime = new Date(manufacturingDate).getTime();
+    const expTime = new Date(expiryDate).getTime();
+
+    if (expTime <= mfgTime) {
+      setValidationError('Expiry Date must be strictly after the Manufacturing Date.');
+      return false;
+    }
+
+    if (activeEvaluation.isExpired) {
+      setValidationError('Product is marked as expired based on current date. Please set a future Expiry Date.');
       return false;
     }
 
@@ -281,16 +226,18 @@ export function FastCatalogForm() {
       recommendedPrice: activeEvaluation.recommendedPrice,
       publishedPrice: activePrice,
       discountPct,
-      prepDate,
-      prepTime,
-      bestBeforeDate,
-      bestBeforeTime,
-      expiryDateTime: hasExpiryDate ? `${expiryDate}T${expiryTime}:00` : undefined,
-      deadline: deadlineIso,
+      manufacturingDate,
+      manufacturingDateFormatted: activeEvaluation.manufacturingDateFormatted,
+      expiryDate,
+      expiryDateFormatted: activeEvaluation.expiryDateFormatted,
+      expiryCountdownFormatted: activeEvaluation.expiryCountdownFormatted,
+      deadline: new Date(`${expiryDate}T23:59:59.999`).toISOString(),
       salesVelocity,
+      salesVelocityNumeric,
       unitsSoldToday,
       expectedDemand,
       wasteRiskScore: activeEvaluation.wasteRiskScore,
+      wasteRiskPercentage: activeEvaluation.wasteRiskPercentage,
       riskLevel: activeEvaluation.riskLevel,
       riskReasons: activeEvaluation.reasons,
       status: 'ACTIVE',
@@ -315,103 +262,122 @@ export function FastCatalogForm() {
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-emerald-300" />
-            Quick Catalog Test Presets
+            ResQFood Quick Test Presets
           </span>
           <p className="text-xs text-zinc-300 mt-1 max-w-lg">
-            Populate sample products across different categories to test real-time risk calculations, expiry warnings, and dynamic markdown logic.
+            Populate sample products with Manufacturing &amp; Expiry dates (`DD Month YYYY`) to test live countdowns and rule-based waste risk scoring.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={applyDairyPreset}
-            className="px-3.5 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
+            onClick={applySandwichPreset}
+            className="px-3.5 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
           >
-            🥛 Dairy (Paneer 50% Off)
+            🥪 Fresh Sandwich (₹35 / 86% Risk)
+          </button>
+          <button
+            type="button"
+            onClick={applyDairyPreset}
+            className="px-3.5 py-2 rounded-xl bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
+          >
+            🥛 Paneer (Dairy 50% Off)
           </button>
           <button
             type="button"
             onClick={applyBakeryPreset}
             className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
           >
-            🥐 Bakery (Sourdough 50% Off)
-          </button>
-          <button
-            type="button"
-            onClick={applyPreparedFoodPreset}
-            className="px-3.5 py-2 rounded-xl bg-rose-400 hover:bg-rose-300 text-zinc-950 text-xs font-black transition-all active:scale-95 shadow"
-          >
-            🍱 Meal Box (High Velocity)
+            🥐 Sourdough (Bakery)
           </button>
         </div>
       </div>
 
       {/* Validation Error Alert */}
       {validationError && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-900 text-sm font-semibold flex items-center gap-3 animate-in fade-in">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3 animate-in shake">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-          <span>{validationError}</span>
+          <span className="font-bold">{validationError}</span>
         </div>
       )}
 
-      {/* Main Form */}
+      {/* Main Listing Form */}
       <form onSubmit={handleOpenReview} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Column: Comprehensive Product, Expiry, & Inventory Inputs */}
+        {/* Left Column: Product Info & Date Pickers */}
         <div className="lg:col-span-7 space-y-6">
 
           {/* Section 1: Product Information */}
           <div className="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-emerald-600" />
+                <Tag className="w-4 h-4 text-emerald-600" />
                 <h2 className="font-extrabold text-sm text-zinc-900 uppercase tracking-wide">1. Product Information</h2>
               </div>
-              <span className="text-[11px] font-mono text-zinc-400">Core Listing</span>
+              <span className="text-xs text-zinc-400">Step 1 of 3</span>
             </div>
 
+            {/* Store Outlet Picker */}
             <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-1">Originating Store / Branch</label>
+              <label className="block text-xs font-bold text-zinc-700 mb-1">Select Outlet / Location *</label>
               <select
                 value={selectedStoreId}
                 onChange={(e) => setSelectedStoreId(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium text-zinc-900"
+                className="w-full px-3.5 py-2.5 text-xs font-semibold border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-zinc-50 focus:bg-white text-zinc-800"
               >
-                {stores.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
+                {stores.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.streetAddress})</option>
                 ))}
               </select>
             </div>
 
+            {/* Product Name */}
             <div>
               <label className="block text-xs font-bold text-zinc-700 mb-1">Product Name *</label>
               <input
                 type="text"
                 required
-                minLength={3}
-                maxLength={80}
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                placeholder="e.g. Malai Paneer 500g, Artisanal Baguette, Cold Brew Latte"
-                className="w-full px-3.5 py-2.5 text-sm border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-900 font-semibold"
+                placeholder="e.g. Fresh Sandwich, Chocolate Croissant, Whole Milk"
+                className="w-full px-3.5 py-2.5 text-sm font-semibold border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none placeholder:text-zinc-400 text-zinc-900"
               />
             </div>
 
+            {/* Category Grid */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-700 mb-2">Category *</label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {(['Bakery', 'Prepared Food', 'Dairy', 'Snacks', 'Beverages', 'Other'] as StoreCategory[]).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleCategoryChange(cat)}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition-all border text-center ${
+                      category === cat
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                        : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quantity and Unit */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">Product Category *</label>
-                <select
-                  value={category}
-                  onChange={(e) => handleCategoryChange(e.target.value as StoreCategory)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-semibold text-zinc-800"
-                >
-                  <option value="Bakery">🥐 Bakery</option>
-                  <option value="Prepared Food">🍱 Prepared Food</option>
-                  <option value="Dairy">🥛 Dairy</option>
-                  <option value="Snacks">🥨 Snacks</option>
-                  <option value="Beverages">🧃 Beverages</option>
-                  <option value="Other">📦 Other</option>
-                </select>
+                <label className="block text-xs font-bold text-zinc-700 mb-1">Quantity Available *</label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  max={500}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full px-3.5 py-2.5 text-sm font-mono font-bold border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-900"
+                />
               </div>
 
               <div>
@@ -419,283 +385,145 @@ export function FastCatalogForm() {
                 <select
                   value={unit}
                   onChange={(e) => setUnit(e.target.value as ProductUnit)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-semibold text-zinc-800"
+                  className="w-full px-3.5 py-2.5 text-xs font-semibold border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-zinc-50 focus:bg-white text-zinc-800"
                 >
-                  <option value="pieces">pieces</option>
-                  <option value="kg">kg</option>
+                  <option value="pieces">pieces / units</option>
+                  <option value="kg">kg (Kilograms)</option>
                   <option value="litres">litres</option>
-                  <option value="packs">packs</option>
+                  <option value="packs">packs / containers</option>
                   <option value="plates">plates</option>
                   <option value="portions">portions</option>
-                  <option value="boxes">boxes</option>
+                  <option value="boxes">boxes / combos</option>
                 </select>
               </div>
             </div>
 
+            {/* Description */}
             <div>
               <label className="block text-xs font-bold text-zinc-700 mb-1">Product Description</label>
               <textarea
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of the surplus batch, ingredients, freshness notes..."
-                className="w-full px-3.5 py-2 text-xs border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800"
+                placeholder="Details about ingredients, packaging, storage recommendations..."
+                className="w-full px-3.5 py-2 text-xs border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800 resize-none"
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-1">Product Image URL</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="flex-1 px-3.5 py-2 text-xs border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800"
-                />
-                {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="Preview"
-                    className="w-10 h-10 rounded-xl object-cover border border-zinc-200 shadow-sm"
-                  />
-                )}
-              </div>
             </div>
           </div>
 
-          {/* Section 2: Time & Expiry Information with Warning System */}
+          {/* Section 2: Manufacturing & Expiry Date Pickers (DD Month YYYY) */}
           <div className="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-emerald-600" />
-                <h2 className="font-extrabold text-sm text-zinc-900 uppercase tracking-wide">2. Time & Expiry Information</h2>
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                <h2 className="font-extrabold text-sm text-zinc-900 uppercase tracking-wide">2. Manufacturing &amp; Expiry Dates</h2>
               </div>
-              <div className="flex items-center gap-1 text-xs font-mono font-bold">
-                <span className="text-zinc-500">Horizon:</span>
-                <span className={
-                  activeEvaluation.windowStatus === 'safe'
-                    ? 'text-emerald-700 font-black'
-                    : activeEvaluation.windowStatus === 'warning'
-                    ? 'text-amber-600 font-black'
-                    : 'text-rose-600 font-black'
-                }>
-                  {activeEvaluation.timeRemainingFormatted}
-                </span>
-              </div>
-            </div>
-
-            {/* Visual Warning Banner */}
-            <div className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-between ${
-              activeEvaluation.windowStatus === 'safe'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                : activeEvaluation.windowStatus === 'warning'
-                ? 'bg-amber-50 border-amber-200 text-amber-900'
-                : 'bg-rose-50 border-rose-200 text-rose-900'
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className="text-base">
-                  {activeEvaluation.windowStatus === 'safe' ? '🟢' : activeEvaluation.windowStatus === 'warning' ? '🟡' : '🔴'}
-                </span>
-                <span>
-                  {activeEvaluation.windowStatus === 'safe' && 'Safe selling window (> 3h left before deadline)'}
-                  {activeEvaluation.windowStatus === 'warning' && 'Approaching expiry (1h – 3h remaining - discount advised)'}
-                  {activeEvaluation.windowStatus === 'critical' && 'Critical risk (< 1h remaining - aggressive markdown needed)'}
-                  {activeEvaluation.windowStatus === 'expired' && 'Expired selling deadline'}
-                </span>
-              </div>
-              <span className="font-mono text-[11px] uppercase bg-white/70 px-2 py-0.5 rounded-lg border border-black/5">
-                {activeEvaluation.timeRemainingFormatted}
+              <span className="text-xs font-mono font-bold text-emerald-700">
+                DD Month YYYY Format
               </span>
             </div>
 
-            {/* Preparation Date & Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-zinc-400" />
-                  Date of Preparation
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={prepDate}
-                  onChange={(e) => setPrepDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                  Preparation Time
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={prepTime}
-                  onChange={(e) => setPrepTime(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800"
-                />
-              </div>
-            </div>
-
-            {/* Best Before Date & Time (Determines Selling Deadline) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                  Best Before Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={bestBeforeDate}
-                  onChange={(e) => setBestBeforeDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-900 font-bold bg-emerald-50/30"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                  Best Before Time * (Selling Deadline)
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={bestBeforeTime}
-                  onChange={(e) => setBestBeforeTime(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-900 font-bold bg-emerald-50/30"
-                />
-              </div>
-            </div>
-
-            {/* Optional Expiry Date/Time */}
-            <div className="pt-2 border-t border-zinc-100">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={hasExpiryDate}
-                  onChange={(e) => setHasExpiryDate(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                />
-                <span>Set Separate Final Expiry Date/Time (where applicable)</span>
-              </label>
-
-              {hasExpiryDate && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 animate-in fade-in">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Final Expiry Date</label>
-                    <input
-                      type="date"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-xl"
-                    />
+            {/* Live Expiry Countdown Banner */}
+            <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+              activeEvaluation.windowStatus === 'safe'
+                ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                : activeEvaluation.windowStatus === 'warning'
+                ? 'bg-amber-50/80 border-amber-200 text-amber-950'
+                : 'bg-rose-50/80 border-rose-200 text-rose-950'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">
+                  {activeEvaluation.windowStatus === 'safe' ? '🟢' : activeEvaluation.windowStatus === 'warning' ? '🟡' : '🔴'}
+                </span>
+                <div>
+                  <div className="font-extrabold text-xs flex items-center gap-2">
+                    <span>Expires on: <strong>{activeEvaluation.expiryDateFormatted}</strong></span>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-500 mb-1">Final Expiry Time</label>
-                    <input
-                      type="time"
-                      value={expiryTime}
-                      onChange={(e) => setExpiryTime(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-xl"
-                    />
-                  </div>
+                  <p className="text-[11px] opacity-80 mt-0.5">
+                    Live Countdown: <strong className="font-mono font-black">{activeEvaluation.expiryCountdownFormatted}</strong>
+                  </p>
                 </div>
-              )}
+              </div>
+              <span className="font-mono text-xs font-black uppercase px-2.5 py-1 rounded-xl bg-white shadow-sm border border-black/5">
+                ⏳ {activeEvaluation.expiryCountdownFormatted}
+              </span>
             </div>
-          </div>
 
-          {/* Section 3: Inventory & Sales Velocity Information */}
-          <div className="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
-            <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+            {/* Manufacturing & Expiry Date Pickers */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200 space-y-1.5">
+                <label className="block text-xs font-bold text-zinc-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                  Manufacturing Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={manufacturingDate}
+                  onChange={(e) => setManufacturingDate(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-mono font-bold border border-zinc-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
+                />
+                <p className="text-[11px] text-zinc-500 font-semibold pt-1">
+                  📅 Made: <strong className="text-zinc-800">{formatDisplayDate(manufacturingDate)}</strong>
+                </p>
+              </div>
+
+              <div className="bg-emerald-50/40 p-3.5 rounded-2xl border border-emerald-200 space-y-1.5">
+                <label className="block text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                  Expiry Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-mono font-bold border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-zinc-900"
+                />
+                <p className="text-[11px] text-emerald-800 font-semibold pt-1">
+                  📅 Expires: <strong className="text-emerald-950">{formatDisplayDate(expiryDate)}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Sales Velocity Rate */}
+            <div className="pt-2 border-t border-zinc-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <label className="block text-xs font-bold text-zinc-700">Estimated Sales Velocity</label>
+                <p className="text-[11px] text-zinc-400">Average units sold per hour at this counter</p>
+              </div>
               <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-600" />
-                <h2 className="font-extrabold text-sm text-zinc-900 uppercase tracking-wide">3. Inventory & Velocity Tracking</h2>
-              </div>
-              <span className="text-[11px] font-mono text-zinc-400">Demand Model</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">Quantity Available *</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    max={1000}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full px-3.5 py-2.5 text-sm font-mono border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-zinc-900"
-                  />
-                  <span className="absolute right-3 top-2.5 text-xs text-zinc-400 font-medium">{unit}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">Units Sold Today</label>
                 <input
                   type="number"
-                  min={0}
-                  max={1000}
-                  value={unitsSoldToday}
-                  onChange={(e) => setUnitsSoldToday(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full px-3.5 py-2.5 text-sm font-mono border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800 font-medium"
+                  step="0.5"
+                  min="0.5"
+                  max="50"
+                  value={salesVelocityNumeric}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value) || 1.0;
+                    setSalesVelocityNumeric(v);
+                    if (v < 2.0) setSalesVelocity('LOW');
+                    else if (v <= 5.0) setSalesVelocity('MEDIUM');
+                    else setSalesVelocity('HIGH');
+                  }}
+                  className="w-20 px-2.5 py-1.5 text-xs font-mono font-bold border border-zinc-300 rounded-xl text-center bg-white"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">Expected Daily Demand</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={expectedDemand}
-                  onChange={(e) => setExpectedDemand(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3.5 py-2.5 text-sm font-mono border border-zinc-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-zinc-800 font-medium"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-1">Observed Sales Velocity</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['LOW', 'MEDIUM', 'HIGH'] as SalesVelocity[]).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setSalesVelocity(v)}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                      salesVelocity === v
-                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm'
-                        : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200'
-                    }`}
-                  >
-                    {v === 'LOW' && '🐢 Low (< 2/hr)'}
-                    {v === 'MEDIUM' && '🚶 Med (2–5/hr)'}
-                    {v === 'HIGH' && '⚡ High (> 5/hr)'}
-                  </button>
-                ))}
+                <span className="text-xs text-zinc-500 font-bold">{unit}/hr</span>
               </div>
             </div>
           </div>
 
-          {/* Section 4: Pricing Base Inputs */}
+          {/* Section 3: Pricing Baseline */}
           <div className="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Tag className="w-4 h-4 text-emerald-600" />
-                <h2 className="font-extrabold text-sm text-zinc-900 uppercase tracking-wide">4. Pricing Information</h2>
+                <h2 className="font-extrabold text-sm text-zinc-900 uppercase tracking-wide">3. Pricing Baseline</h2>
               </div>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-                Auto Discount: -{discountPct}%
-              </span>
+              <span className="text-xs text-zinc-400">Step 3 of 3</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-zinc-700 mb-1">Original Price per Unit (₹) *</label>
                 <div className="relative">
@@ -758,7 +586,7 @@ export function FastCatalogForm() {
               className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 hover:from-emerald-500 hover:to-teal-700 active:scale-[0.99] text-white font-black text-base shadow-xl shadow-emerald-700/25 flex items-center justify-center gap-2.5 transition-all"
             >
               <Eye className="w-5 h-5" />
-              <span>REVIEW & PUBLISH DEAL (₹{activePrice}) ➔</span>
+              <span>REVIEW &amp; PUBLISH DEAL (₹{activePrice}) ➔</span>
             </button>
             <p className="text-center text-[11px] text-zinc-400 mt-2">
               Opens pre-publication summary card with full risk breakdown.
@@ -776,7 +604,7 @@ export function FastCatalogForm() {
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Pre-Publication Review</span>
-                <h3 className="text-lg font-black text-zinc-900">Confirm Surplus Food Listing</h3>
+                <h3 className="text-lg font-black text-zinc-900">Confirm ResQFood Surplus Listing</h3>
               </div>
               <button
                 type="button"
@@ -787,7 +615,7 @@ export function FastCatalogForm() {
               </button>
             </div>
 
-            {/* Product Summary Grid */}
+            {/* Product Summary Card Format */}
             <div className="flex gap-4 items-start bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
               <img
                 src={imageUrl || CATEGORY_IMAGES[category]}
@@ -799,12 +627,12 @@ export function FastCatalogForm() {
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-zinc-900 text-white">
                     {category}
                   </span>
-                  <span className="text-xs text-zinc-500 font-mono">
-                    {quantity} {unit} available
+                  <span className="text-xs text-zinc-500 font-mono font-bold">
+                    📦 {quantity} {unit} left
                   </span>
                 </div>
                 <h4 className="font-extrabold text-base text-zinc-900">{productName}</h4>
-                <p className="text-xs text-zinc-600 line-clamp-2">{description}</p>
+                <p className="text-xs text-zinc-600 line-clamp-1">{description}</p>
               </div>
             </div>
 
@@ -823,29 +651,28 @@ export function FastCatalogForm() {
                 <span className="text-base font-black text-rose-700">-{discountPct}%</span>
               </div>
               <div className="bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
-                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Potential Recovery</span>
-                <span className="text-base font-black text-zinc-900">{formatINR(activePrice * quantity)}</span>
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Waste Risk</span>
+                <span className="text-base font-black text-zinc-900">{activeEvaluation.wasteRiskScore}% 🔴</span>
               </div>
             </div>
 
-            {/* Time & Risk Status */}
+            {/* Date & Expiry Details Card */}
             <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-600 font-medium">Selling Window:</span>
-                <span className="font-bold text-zinc-900 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                  {activeEvaluation.timeRemainingFormatted} remaining
-                </span>
+                <span className="text-zinc-600 font-medium">🏭 Manufacturing Date:</span>
+                <span className="font-bold text-zinc-900">{activeEvaluation.manufacturingDateFormatted}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-zinc-600 font-medium">Waste Risk Score:</span>
-                <span className="font-extrabold text-zinc-900">
-                  {activeEvaluation.wasteRiskScore}/100 ({activeEvaluation.riskLevel} Risk)
-                </span>
+                <span className="text-zinc-600 font-medium">📅 Expiry Date:</span>
+                <span className="font-bold text-zinc-900">{activeEvaluation.expiryDateFormatted}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-zinc-600 font-medium">Best Before Deadline:</span>
-                <span className="font-mono text-zinc-700">{bestBeforeDate} at {bestBeforeTime}</span>
+                <span className="text-zinc-600 font-medium">⏳ Expiry Countdown:</span>
+                <span className="font-bold text-emerald-700 font-mono">{activeEvaluation.expiryCountdownFormatted}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-600 font-medium">💡 Primary Reason:</span>
+                <span className="font-medium text-zinc-700 italic">{activeEvaluation.primaryReason}</span>
               </div>
             </div>
 
@@ -880,7 +707,7 @@ export function FastCatalogForm() {
           <CheckCircle2 className="w-6 h-6 text-emerald-400" />
           <div>
             <h4 className="font-extrabold text-sm">Deal Published Successfully!</h4>
-            <p className="text-xs text-emerald-200">Broadcasted to nearby customers within 5 km.</p>
+            <p className="text-xs text-emerald-200">Broadcasted to nearby customers within 10 km.</p>
           </div>
         </div>
       )}
