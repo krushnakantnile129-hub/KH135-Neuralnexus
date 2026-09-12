@@ -54,11 +54,13 @@ export default function HomePage() {
 
     if (typeof window !== 'undefined') {
       window.addEventListener('deals-updated', handleUpdate);
+      window.addEventListener('storage', handleUpdate);
     }
-    const interval = setInterval(handleUpdate, 3000);
+    const interval = setInterval(handleUpdate, 2000);
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('deals-updated', handleUpdate);
+        window.removeEventListener('storage', handleUpdate);
       }
       clearInterval(interval);
     };

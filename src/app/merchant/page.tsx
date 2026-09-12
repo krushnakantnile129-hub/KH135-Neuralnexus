@@ -58,11 +58,13 @@ export default function MerchantPage() {
     const handleUpdate = () => refreshData();
     if (typeof window !== 'undefined') {
       window.addEventListener('deals-updated', handleUpdate);
+      window.addEventListener('storage', handleUpdate);
     }
-    const interval = setInterval(refreshData, 3000);
+    const interval = setInterval(refreshData, 2000);
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('deals-updated', handleUpdate);
+        window.removeEventListener('storage', handleUpdate);
       }
       clearInterval(interval);
     };
