@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/navbar';
-import { TelemetryCards } from '@/components/merchant/telemetry-cards';
+import { FastCatalogForm } from '@/components/merchant/fast-catalog-form';
 import { ActiveDealsList } from '@/components/merchant/active-deals-list';
+import { AddSurplusModal } from '@/components/merchant/add-surplus-modal';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { Deal, Store, User } from '@/shared/types';
 import { 
@@ -12,8 +13,7 @@ import {
   loadStores, 
   decrementDealInventory, 
   markDealAllSold, 
-  updateDealStatus, 
-  computeMerchantMetrics 
+  updateDealStatus 
 } from '@/lib/store';
 import { subscribeAuth } from '@/lib/auth-store';
 import { 
@@ -22,17 +22,18 @@ import {
   Store as StoreIcon,
   Lock,
   ArrowRight,
-  UserCheck
+  Package,
+  Layers
 } from 'lucide-react';
 
 export default function MerchantPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAddSurplusModal, setShowAddSurplusModal] = useState(false);
 
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
   const [deals, setDeals] = useState<Deal[]>([]);
-  const [metrics, setMetrics] = useState(computeMerchantMetrics());
 
   // Subscribe to Auth
   useEffect(() => {
@@ -50,13 +51,21 @@ export default function MerchantPage() {
     }
     const d = loadDeals();
     setDeals(d);
-    setMetrics(computeMerchantMetrics(selectedStoreId || undefined));
   };
 
   useEffect(() => {
     refreshData();
-    const interval = setInterval(refreshData, 5000);
-    return () => clearInterval(interval);
+    const handleUpdate = () => refreshData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('deals-updated', handleUpdate);
+    }
+    const interval = setInterval(refreshData, 3000);
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('deals-updated', handleUpdate);
+      }
+      clearInterval(interval);
+    };
   }, [selectedStoreId]);
 
   const handleSellOne = (dealId: string) => {
@@ -70,7 +79,7 @@ export default function MerchantPage() {
   };
 
   const handleCancel = (dealId: string) => {
-    if (confirm('Cancel and unpublish this surplus deal from public consumer indices?')) {
+    if (confirm('Cancel and unpublish this surplus deal from public consumer feeds?')) {
       updateDealStatus(dealId, 'CANCELLED');
       refreshData();
     }
@@ -100,7 +109,7 @@ export default function MerchantPage() {
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900">Merchant Control Center</h1>
               <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed max-w-md mx-auto">
-                You are currently browsing as {currentUser ? `a ${currentUser.role}` : 'a Guest'}. Please sign in with your Shopkeeper account via Gmail or custom credentials to publish deals and monitor pricing telemetry.
+                You are currently browsing as {currentUser ? `a ${currentUser.role}` : 'a Guest'}. Please sign in with your Shopkeeper account via Gmail or custom credentials to publish deals and manage surplus inventory.
               </p>
             </div>
 
@@ -136,7 +145,7 @@ export default function MerchantPage() {
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5">
-                    Verified Maharashtra Merchant • Real-time inventory clearance, pricing telemetry &amp; ESG impact.
+                    Verified Maharashtra Merchant • Real-time surplus food cataloging &amp; multi-factor dynamic pricing.
                   </p>
                 </div>
               </div>
@@ -154,47 +163,28 @@ export default function MerchantPage() {
                   ))}
                 </select>
 
-                <Link
-                  href="/merchant/add-deal"
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all"
+                <button
+                  type="button"
+                  onClick={() => setShowAddSurplusModal(true)}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm flex items-center gap-1.5 transition-all"
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>Add Surplus Listing</span>
-                </Link>
+                  <span>+ Add Surplus Modal</span>
+                </button>
               </div>
             </div>
           </section>
 
-          {/* Main Merchant Body */}
+          {/* Main Merchant Dashboard Body */}
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
-          {/* Section: Performance Summary Cards */}
+            
+            {/* Section 1: Publish New Surplus Item Form with Multi-Factor Pricing Engine */}
             <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-bold text-base text-zinc-900">Sales Performance</h2>
-                  <p className="text-xs text-zinc-500">Live revenue and inventory metrics for your store</p>
-                </div>
-                <span className="text-[11px] font-mono text-zinc-400">Auto-refreshed</span>
-              </div>
-
-              <TelemetryCards metrics={metrics} />
+              <FastCatalogForm onSuccess={refreshData} />
             </section>
 
-            {/* Section: Live Active Surplus Listings */}
+            {/* Section 2: Live Active Surplus Inventory Management Table */}
             <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-bold text-base text-zinc-900">Current Surplus Inventory Status</h2>
-                  <p className="text-xs text-zinc-500">Fast 1-click counter decrement as walk-in customers purchase items</p>
-                </div>
-                <Link
-                  href="/merchant/add-deal"
-                  className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
-                >
-                  <span>+ Catalog New Batch</span>
-                </Link>
-              </div>
-
               <ActiveDealsList
                 deals={storeDeals}
                 onSellOne={handleSellOne}
@@ -203,34 +193,23 @@ export default function MerchantPage() {
               />
             </section>
 
-            {/* Informational Guidance Box */}
-            <section className="p-5 bg-gradient-to-r from-emerald-950 to-teal-950 text-white rounded-3xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                  <ShieldCheck className="w-4 h-4" />
-                  Explainable Human-In-The-Loop Pricing Philosophy
-                </div>
-                <p className="text-xs text-zinc-300 max-w-2xl leading-relaxed">
-                  SAVE-BITE never forces auto-markdowns. You maintain 100% pricing sovereignty via the 60 FPS slider while receiving real-time mathematical risk predictions.
-                </p>
-              </div>
-              <Link
-                href="/merchant/add-deal"
-                className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-extrabold text-xs shrink-0 transition-colors"
-              >
-                Launch Interactive Pricing Slider ➔
-              </Link>
-            </section>
           </main>
         </>
       )}
+
+      {/* Add Surplus Modal */}
+      <AddSurplusModal
+        isOpen={showAddSurplusModal}
+        onClose={() => setShowAddSurplusModal(false)}
+        onItemAdded={refreshData}
+      />
 
       {/* Auth Modal for Shopkeeper Login */}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         initialRole="SHOPKEEPER"
-        customPrompt="Sign in as Shopkeeper to access the Merchant Control Center & 60 FPS pricing slider."
+        customPrompt="Sign in as Shopkeeper to access the Merchant Control Center & Dynamic Price Engine."
       />
     </div>
   );

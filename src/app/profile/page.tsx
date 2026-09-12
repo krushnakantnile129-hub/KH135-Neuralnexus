@@ -15,7 +15,7 @@ import {
   Edit3, 
   Package, 
   FileCheck, 
-  Building2, 
+  Building, 
   CreditCard, 
   MapPin, 
   Sparkles,
@@ -167,7 +167,7 @@ export default function ProfilePage() {
     );
   }
 
-  const isShopkeeper = currentUser.role === 'SHOPKEEPER' || currentUser.role === 'ADMIN';
+  const isShopkeeper = currentUser.role === 'SHOPKEEPER';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -315,7 +315,7 @@ export default function ProfilePage() {
           <form onSubmit={handleSaveBusinessInfo} className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200 shadow-sm space-y-6">
             <div className="border-b border-zinc-100 pb-3">
               <h2 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-600" />
+                <StoreIcon className="w-4 h-4 text-blue-600" />
                 <span>Registered Business Info &amp; Tax Compliance (Amazon-Style Merchant Profile)</span>
               </h2>
               <p className="text-xs text-zinc-500">Manage registered business address, FSSAI license, GSTIN, and payout bank details</p>

@@ -161,3 +161,96 @@ export function evaluateWasteRisk(input: RiskInput): RiskEvaluationResult {
     }
   };
 }
+
+export interface MultiFactorPricingInput {
+  originalPrice: number;
+  hoursUntilExpiry: number;
+  totalShelfLifeHours?: number; // default: 12
+  stockRemaining: number;
+  unitsSoldSoFar?: number; // default: 0
+}
+
+export interface MultiFactorPricingResult {
+  urgencyScore: number;
+  stockPressureScore: number;
+  velocityDeficitScore: number;
+  compositeScore: number;
+  wasteRiskScore: number;
+  riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical';
+  discountPct: number;
+  recommendedPrice: number;
+  badgeColorClass: string;
+  badgeLabel: string;
+}
+
+/**
+ * Multi-Factor Dynamic Pricing Engine
+ * Computes waste risk score and recommended clearance price based on:
+ * - Time Urgency Score (w_u = 0.45)
+ * - Stock Pressure Score (w_s = 0.30)
+ * - Velocity Deficit Score (w_v = 0.25)
+ */
+export function calculateRecommendedPrice(input: MultiFactorPricingInput): MultiFactorPricingResult {
+  const originalPrice = Math.max(5, input.originalPrice || 0);
+  const totalShelfLifeHours = input.totalShelfLifeHours && input.totalShelfLifeHours > 0 ? input.totalShelfLifeHours : 12;
+  const hoursUntilExpiry = Math.max(0.01, input.hoursUntilExpiry);
+  const stockRemaining = Math.max(1, input.stockRemaining);
+  const unitsSoldSoFar = Math.max(0, input.unitsSoldSoFar || 0);
+
+  // a. Time Urgency Score (0-100)
+  const urgencyScore = Math.min(100, Math.max(0, (1 - (hoursUntilExpiry / totalShelfLifeHours)) * 100));
+
+  // b. Stock Pressure Score (0-100)
+  const stockPressureScore = stockRemaining > 10 ? 90 : (stockRemaining >= 5 ? 60 : 30);
+
+  // c. Velocity Deficit Score (0-100)
+  const hoursElapsed = Math.max(0.5, totalShelfLifeHours - hoursUntilExpiry);
+  const requiredSalesRate = stockRemaining / Math.max(0.5, hoursUntilExpiry);
+  const actualSalesRate = unitsSoldSoFar / Math.max(0.5, hoursElapsed);
+  const velocityDeficitScore = requiredSalesRate > actualSalesRate
+    ? Math.min(100, (requiredSalesRate - actualSalesRate) * 30)
+    : 10;
+
+  // d. Combined Waste Risk Score (0-100)
+  const compositeScore = Math.min(100, Math.max(0, (urgencyScore * 0.45) + (stockPressureScore * 0.30) + (velocityDeficitScore * 0.25)));
+  const wasteRiskScore = Math.round(compositeScore);
+
+  // Discount Mapping & Risk Level
+  let riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical' = 'Low';
+  let discountPct = 20;
+  let badgeColorClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+
+  if (compositeScore <= 25) {
+    riskLevel = 'Low';
+    discountPct = 20;
+    badgeColorClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+  } else if (compositeScore <= 55) {
+    riskLevel = 'Moderate';
+    discountPct = 35;
+    badgeColorClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
+  } else if (compositeScore <= 80) {
+    riskLevel = 'High';
+    discountPct = 55;
+    badgeColorClass = 'bg-amber-100 text-amber-900 border-amber-300';
+  } else {
+    riskLevel = 'Critical';
+    discountPct = 70;
+    badgeColorClass = 'bg-rose-100 text-rose-800 border-rose-300';
+  }
+
+  const rawRecPrice = originalPrice * (1 - discountPct / 100);
+  const recommendedPrice = Math.max(Math.round(originalPrice * 0.20), Math.round(rawRecPrice));
+
+  return {
+    urgencyScore: Math.round(urgencyScore),
+    stockPressureScore: Math.round(stockPressureScore),
+    velocityDeficitScore: Math.round(velocityDeficitScore),
+    compositeScore: Math.round(compositeScore * 10) / 10,
+    wasteRiskScore,
+    riskLevel,
+    discountPct,
+    recommendedPrice,
+    badgeColorClass,
+    badgeLabel: `${riskLevel} (${wasteRiskScore})`,
+  };
+}

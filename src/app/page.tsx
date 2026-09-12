@@ -17,7 +17,10 @@ import {
   ShieldCheck, 
   Footprints,
   Compass,
-  Lock
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -28,6 +31,8 @@ export default function HomePage() {
   const [userLocation, setUserLocation] = useState(POPULAR_LOCATIONS[0]);
   const [maxRadiusKm, setMaxRadiusKm] = useState(5.0);
   const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationSuccess, setLocationSuccess] = useState<string | null>(null);
 
   // Auth state & Product gate modal
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -42,34 +47,72 @@ export default function HomePage() {
 
   // Load and subscribe to deals
   useEffect(() => {
+    const handleUpdate = () => {
+      setDeals(loadDeals());
+    };
     setDeals(loadDeals());
 
-    const interval = setInterval(() => {
-      setDeals(loadDeals());
-    }, 10000);
-    return () => clearInterval(interval);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('deals-updated', handleUpdate);
+    }
+    const interval = setInterval(handleUpdate, 3000);
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('deals-updated', handleUpdate);
+      }
+      clearInterval(interval);
+    };
   }, []);
 
   const handleGetBrowserLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      setLocationError('Geolocation is not supported by your browser. Please select your area manually from the top location dropdown.');
       return;
     }
+
     setIsLocating(true);
+    setLocationError(null);
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLocation({
-          name: 'My Current Location (Live GPS)',
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        
+        let locName = `Live GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+          if (res.ok) {
+            const data = await res.json();
+            const city = data.address?.city || data.address?.town || data.address?.suburb || data.address?.county;
+            const road = data.address?.road || data.address?.neighbourhood;
+            if (city) {
+              locName = road ? `${road}, ${city} (Live GPS)` : `${city} (Live GPS)`;
+            }
+          }
+        } catch (err) {
+          // Fallback to lat/lng format
+        }
+
+        const newLoc = { name: locName, lat, lng };
+        setUserLocation(newLoc);
         setIsLocating(false);
+        setLocationSuccess(`Location set to ${locName}`);
+        setTimeout(() => setLocationSuccess(null), 4000);
       },
-      () => {
+      (err) => {
         setIsLocating(false);
-        alert('Location permission denied or unavailable. Falling back to default commercial district.');
+        let msg = 'Location permission was denied or unavailable. Please manually select your area from the top location dropdown.';
+        if (err.code === err.PERMISSION_DENIED) {
+          msg = 'Location permission was denied by your browser. Please allow location access or manually select your area from the top dropdown.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          msg = 'GPS signal unavailable. Please manually select your location from the top dropdown.';
+        } else if (err.code === err.TIMEOUT) {
+          msg = 'GPS lookup timed out. Please try again or select your location manually.';
+        }
+        setLocationError(msg);
       },
-      { timeout: 8000 }
+      { timeout: 10000, enableHighAccuracy: true }
     );
   };
 
@@ -106,13 +149,48 @@ export default function HomePage() {
     const maxMeters = maxRadiusKm * 1000;
     const filtered = listWithDist.filter((d) => {
       if ((d.distanceMeters || 0) > maxMeters) return false;
-      if (selectedCategory !== 'ALL' && d.category !== selectedCategory) return false;
+
+      // Dynamic category matching (e.g. DAIRY, Dairy & Farm, Bakeries, etc.)
+      if (selectedCategory !== 'ALL') {
+        const selCat = selectedCategory.toLowerCase();
+        const dealCat = (d.category || '').toLowerCase();
+        const dealStoreCat = (d.storeCategory || '').toLowerCase();
+
+        const isDairy = selCat.includes('dairy') || selCat.includes('farm');
+        const isBakery = selCat.includes('baker');
+        const isCafe = selCat.includes('cafe') || selCat.includes('café');
+        const isRestaurant = selCat.includes('restaurant');
+        const isCanteen = selCat.includes('canteen');
+        const isGrocery = selCat.includes('grocer');
+
+        const matchesCategory =
+          dealCat === selCat ||
+          dealStoreCat === selCat ||
+          (isDairy && (dealCat.includes('dairy') || dealStoreCat.includes('dairy'))) ||
+          (isBakery && (dealCat.includes('baker') || dealStoreCat.includes('baker'))) ||
+          (isCafe && (dealCat.includes('cafe') || dealStoreCat.includes('cafe'))) ||
+          (isRestaurant && (dealCat.includes('rest') || dealStoreCat.includes('rest'))) ||
+          (isCanteen && (dealCat.includes('cant') || dealStoreCat.includes('cant'))) ||
+          (isGrocery && (dealCat.includes('groc') || dealStoreCat.includes('groc')));
+
+        if (!matchesCategory) return false;
+      }
+
+      // Dynamic search query matching across title, shop, category, description, address
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
+        const pName = (d.productName || d.title || '').toLowerCase();
+        const sName = (d.storeName || d.shopName || '').toLowerCase();
+        const catName = (d.category || d.storeCategory || '').toLowerCase();
+        const desc = (d.description || '').toLowerCase();
+        const addr = (d.storeAddress || d.locationName || '').toLowerCase();
+
         return (
-          d.productName.toLowerCase().includes(q) ||
-          d.storeName.toLowerCase().includes(q) ||
-          d.category.toLowerCase().includes(q)
+          pName.includes(q) ||
+          sName.includes(q) ||
+          catName.includes(q) ||
+          desc.includes(q) ||
+          addr.includes(q)
         );
       }
       return true;
@@ -125,37 +203,44 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar currentLocation={userLocation} onLocationChange={(loc) => setUserLocation(loc)} />
 
-      {/* Hero Banner with Proximity Context */}
-      <section className="bg-gradient-to-b from-emerald-950 via-emerald-900 to-teal-950 text-white py-10 px-4 sm:px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(#22c55e_1px,transparent_1px)] [background-size:24px_24px] opacity-10" />
+      {/* Hero Banner with Background Image & Readability Overlay */}
+      <section 
+        className="relative py-12 px-4 sm:px-6 overflow-hidden bg-cover bg-center text-white min-h-[340px] flex items-center"
+        style={{ backgroundImage: "url('/hero-bg.jpg')" }}
+      >
+        {/* Dark Gradient Readability Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/95 via-emerald-950/85 to-black/75 z-0" />
         
-        <div className="max-w-7xl mx-auto relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
+        {/* Subtle dot accent pattern over gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(#22c55e_1px,transparent_1px)] [background-size:24px_24px] opacity-15 z-0 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto relative z-10 w-full space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-emerald-400/40 text-emerald-300 text-xs font-semibold shadow-lg">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
             <span>Zero-Checkout Hyper-Local Surplus Discovery</span>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
+            <div className="drop-shadow-md">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
                 Rescue Fresh Surplus Food <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-200">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-100">
                   At 30% to 50% Off Nearby.
                 </span>
               </h1>
-              <p className="text-zinc-300 text-sm sm:text-base max-w-2xl mt-2 leading-relaxed">
+              <p className="text-zinc-200 text-sm sm:text-base max-w-2xl mt-3 leading-relaxed font-medium drop-shadow">
                 Local bakeries, cafés, and restaurants price end-of-day batches for immediate walk-in counter redemption. No app fees, no middleman cart, no delivery wait.
               </p>
             </div>
 
             {/* GPS & Distance Radius Controller */}
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 flex flex-col gap-3 shrink-0">
+            <div className="bg-black/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-2xl flex flex-col gap-3 shrink-0">
               <div className="flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-1.5 text-emerald-200">
+                <div className="flex items-center gap-1.5 text-emerald-300">
                   <Footprints className="w-4 h-4 text-emerald-400" />
                   <span className="font-bold">Proximity Radius:</span>
                 </div>
-                <span className="font-mono font-bold bg-emerald-500/30 px-2 py-0.5 rounded text-white">
+                <span className="font-mono font-bold bg-emerald-500/40 px-2 py-0.5 rounded text-white border border-emerald-400/30">
                   {maxRadiusKm} km radius
                 </span>
               </div>
@@ -167,8 +252,8 @@ export default function HomePage() {
                     onClick={() => setMaxRadiusKm(r)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                       maxRadiusKm === r
-                        ? 'bg-emerald-500 text-zinc-950 shadow-sm'
-                        : 'bg-white/10 hover:bg-white/20 text-white'
+                        ? 'bg-emerald-500 text-zinc-950 shadow-md font-extrabold'
+                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
                     }`}
                   >
                     {r} km
@@ -178,17 +263,60 @@ export default function HomePage() {
                 <button
                   onClick={handleGetBrowserLocation}
                   disabled={isLocating}
-                  className="px-3 py-1 rounded-lg bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-bold flex items-center gap-1 transition-colors"
+                  className="px-3.5 py-1.5 rounded-lg bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all active:scale-95 disabled:opacity-75"
                   title="Fetch current browser GPS coordinates"
                 >
-                  <Compass className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-                  <span>{isLocating ? 'GPS...' : 'Use My GPS'}</span>
+                  {isLocating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-950" />
+                      <span>Fetching Location...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>Use My GPS</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Geolocation Feedback Toasts / Notifications */}
+      {locationError && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl flex items-center justify-between text-xs font-semibold shadow-sm animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{locationError}</span>
+            </div>
+            <button
+              onClick={() => setLocationError(null)}
+              className="text-rose-500 hover:text-rose-700 font-bold ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      {locationSuccess && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-4 rounded-2xl flex items-center justify-between text-xs font-bold shadow-sm animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{locationSuccess}</span>
+            </div>
+            <button
+              onClick={() => setLocationSuccess(null)}
+              className="text-emerald-600 hover:text-emerald-800 font-bold ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
@@ -328,7 +456,6 @@ export default function HomePage() {
         initialRole="CONSUMER"
         customPrompt="Sign in or register via Gmail to view deal details, live countdowns & turn-by-turn map directions!"
         onSuccess={() => {
-          // If user was attempting to click a deal, open it after successful login
           if (selectedDeal) {
             // Already set
           }

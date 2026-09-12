@@ -68,20 +68,4 @@ export function formatDateTimeNice(isoString: string): string {
     return `Today, ${timeStr}`;
   }
   return `${date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}, ${timeStr}`;
-}
-
-export const CATEGORY_MASS_KG: Record<string, number> = {
-  'Bakery': 0.35,
-  'Prepared Food': 0.50,
-  'Dairy': 0.50,
-  'Snacks': 0.25,
-  'Beverages': 0.40,
-  'Other': 0.30,
-  // legacy fallbacks
-  'BAKERY': 0.35,
-  'CAFE': 0.25,
-  'RESTAURANT': 0.50,
-  'CANTEEN': 0.40,
-  'GROCERY': 0.60,
-  'DAIRY': 0.50,
-};
+}

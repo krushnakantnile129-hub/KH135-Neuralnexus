@@ -78,43 +78,44 @@
 
   <!-- TAB 1: CONSUMER PROXIMITY DEALS FEED -->
   <section id="tab-consumer" class="flex-1 flex flex-col">
-    <div class="bg-gradient-to-b from-emerald-950 via-emerald-900 to-teal-950 text-white py-10 px-4 sm:px-6 relative overflow-hidden">
-      <div class="max-w-7xl mx-auto relative z-10 space-y-4">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+    <div class="relative py-12 px-4 sm:px-6 overflow-hidden bg-cover bg-center text-white min-h-[340px] flex items-center" style="background-image: url('./hero-bg.jpg');">
+      <div class="absolute inset-0 bg-gradient-to-r from-emerald-950/95 via-emerald-950/85 to-black/75 z-0"></div>
+      <div class="max-w-7xl mx-auto relative z-10 w-full space-y-4">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-emerald-400/40 text-emerald-300 text-xs font-semibold shadow-lg">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400"></i>
           <span>Zero-Checkout Hyper-Local Surplus Discovery</span>
         </div>
 
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
+          <div class="drop-shadow-md">
             <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
               Rescue Fresh Surplus Food <br />
-              <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-200">
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-100">
                 At 30% to 50% Off Nearby.
               </span>
             </h1>
-            <p class="text-zinc-300 text-sm sm:text-base max-w-2xl mt-2 leading-relaxed">
+            <p class="text-zinc-200 text-sm sm:text-base max-w-2xl mt-3 leading-relaxed font-medium drop-shadow">
               Local dairy farms, bakeries, cafés, and restaurants price end-of-day batches for immediate walk-in counter redemption.
             </p>
           </div>
 
-          <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 flex flex-col gap-3 shrink-0">
+          <div class="bg-black/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-2xl flex flex-col gap-3 shrink-0">
             <div class="flex items-center justify-between gap-3 text-xs">
-              <div class="flex items-center gap-1.5 text-emerald-200 font-bold">
+              <div class="flex items-center gap-1.5 text-emerald-300 font-bold">
                 <i data-lucide="footprints" class="w-4 h-4 text-emerald-400"></i>
                 <span>Proximity Radius:</span>
               </div>
-              <span id="radius-badge" class="font-mono font-bold bg-emerald-500/30 px-2 py-0.5 rounded text-white">5 km radius</span>
+              <span id="radius-badge" class="font-mono font-bold bg-emerald-500/40 px-2 py-0.5 rounded text-white border border-emerald-400/30">5 km radius</span>
             </div>
 
             <div class="flex items-center gap-2">
-              <button onclick="setRadius(1)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-white">1 km</button>
-              <button onclick="setRadius(2)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-white">2 km</button>
-              <button onclick="setRadius(5)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-zinc-950 shadow-sm">5 km</button>
-              <button onclick="setRadius(10)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-white">10 km</button>
-              <button onclick="useLiveGPS()" class="px-3 py-1 rounded-lg bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-bold flex items-center gap-1">
+              <button onclick="setRadius(1)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-white border border-white/10">1 km</button>
+              <button onclick="setRadius(2)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-white border border-white/10">2 km</button>
+              <button onclick="setRadius(5)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500 text-zinc-950 shadow-md">5 km</button>
+              <button onclick="setRadius(10)" class="radius-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-white border border-white/10">10 km</button>
+              <button id="gps-btn" onclick="useLiveGPS()" class="px-3.5 py-1.5 rounded-lg bg-teal-400 hover:bg-teal-300 text-zinc-950 text-xs font-bold flex items-center gap-1.5 shadow-md transition-all">
                 <i data-lucide="compass" class="w-3.5 h-3.5"></i>
-                <span>GPS</span>
+                <span id="gps-btn-text">Use My GPS</span>
               </button>
             </div>
           </div>
@@ -183,26 +184,11 @@
     </div>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm">
           <span class="text-xs font-semibold text-zinc-500 uppercase">Revenue Recovered</span>
           <span id="tel-revenue" class="text-3xl font-black text-zinc-900 block mt-2">₹2,820</span>
           <span class="text-[11px] text-zinc-500 block mt-1">Liquid cash from write-off risk</span>
-        </div>
-        <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm">
-          <span class="text-xs font-semibold text-zinc-500 uppercase">Landfill Diversion</span>
-          <span id="tel-diversion" class="text-3xl font-black text-zinc-900 block mt-2">12.45 kg</span>
-          <span id="tel-units" class="text-[11px] text-zinc-500 block mt-1">32 units rescued</span>
-        </div>
-        <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm">
-          <span class="text-xs font-semibold text-zinc-500 uppercase">Avoided CO₂e</span>
-          <span id="tel-co2e" class="text-3xl font-black text-zinc-900 block mt-2">31.13 kg</span>
-          <span class="text-[11px] text-zinc-500 block mt-1">2.5 kg CO₂e per kg food saved</span>
-        </div>
-        <div class="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm">
-          <span class="text-xs font-semibold text-zinc-500 uppercase">Rescue Rate</span>
-          <span id="tel-conversion" class="text-3xl font-black text-zinc-900 block mt-2">88%</span>
-          <span id="tel-deals-ratio" class="text-[11px] text-zinc-500 block mt-1">7 sold / 8 total</span>
         </div>
       </div>
 
@@ -540,22 +526,30 @@
     };
 
     const INITIAL_DEALS = [
-      { id: '1', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'packs', lat: 18.5220, lng: 73.8540, productName: 'Fresh Organic Malai Paneer (500g)', initialUnits: 12, remainingUnits: 10, soldUnits: 2, originalPrice: 220, publishedPrice: 110, deadline: new Date(Date.now() + 45 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Chilled Batch', imageUrl: CAT_IMAGES['Dairy'] },
-      { id: '2', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'litres', lat: 18.5220, lng: 73.8540, productName: 'Pasteurized Whole Cow Milk (1L Pouch)', initialUnits: 20, remainingUnits: 16, soldUnits: 4, originalPrice: 70, publishedPrice: 45, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80' },
-      { id: '3', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'packs', lat: 18.5220, lng: 73.8540, productName: 'Artisanal Set Dahi / Greek Yogurt (400g)', initialUnits: 10, remainingUnits: 8, soldUnits: 2, originalPrice: 120, publishedPrice: 65, deadline: new Date(Date.now() + 90 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Sealed Fresh', imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop&q=80' },
-      { id: '4', storeName: 'ABC Gourmet Bakery', category: 'Bakery', unit: 'pieces', lat: 18.5255, lng: 73.8595, productName: 'Artisan Sourdough Loaf (Scenario 1)', initialUnits: 15, remainingUnits: 15, soldUnits: 0, originalPrice: 120, publishedPrice: 60, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=600&auto=format&fit=crop&q=80' },
-      { id: '5', storeName: 'ABC Gourmet Bakery', category: 'Bakery', unit: 'pieces', lat: 18.5255, lng: 73.8595, productName: 'Fresh Veggie Club (Scenario 2)', initialUnits: 18, remainingUnits: 17, soldUnits: 1, originalPrice: 60, publishedPrice: 40, deadline: new Date(Date.now() + 50 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80' },
-      { id: '6', storeName: 'XYZ Campus Pizzeria', category: 'Prepared Food', unit: 'portions', lat: 18.5298, lng: 73.8652, productName: 'Margherita Pizza Slice Duo', initialUnits: 8, remainingUnits: 5, soldUnits: 3, originalPrice: 150, publishedPrice: 90, deadline: new Date(Date.now() + 130 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Warm Batch', imageUrl: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=600&auto=format&fit=crop&q=80' },
-      { id: '7', storeName: 'The Green Canteen', category: 'Prepared Food', unit: 'boxes', lat: 18.5160, lng: 73.8505, productName: 'Paneer Makhani Rice Bowl', initialUnits: 12, remainingUnits: 6, soldUnits: 6, originalPrice: 110, publishedPrice: 70, deadline: new Date(Date.now() + 40 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Kitchen Fresh', imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80' },
-      { id: '8', storeName: 'Bean & Brew Coffee', category: 'Beverages', unit: 'portions', lat: 18.5340, lng: 73.8610, productName: 'Cold Brew Nitro Latte & Muffin Pair', initialUnits: 10, remainingUnits: 7, soldUnits: 3, originalPrice: 140, publishedPrice: 80, deadline: new Date(Date.now() + 110 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80' }
+      // Narhe, Pune
+      { id: 'narhe-1', storeName: 'Shivani Dairy & Sweets', category: 'Dairy', unit: 'packs', lat: 18.4485, lng: 73.8266, productName: 'Fresh Curd / Dahi (500g Pouch)', initialUnits: 15, remainingUnits: 12, soldUnits: 3, originalPrice: 40, publishedPrice: 20, wasteRiskScore: 76, deadline: new Date(Date.now() + 90 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Chilled Batch', imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop&q=80' },
+      { id: 'narhe-2', storeName: 'Navale Bakehouse', category: 'Bakery', unit: 'pieces', lat: 18.4490, lng: 73.8270, productName: 'Whole Wheat Sourdough Loaf', initialUnits: 10, remainingUnits: 8, soldUnits: 2, originalPrice: 120, publishedPrice: 60, wasteRiskScore: 72, deadline: new Date(Date.now() + 120 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=600&auto=format&fit=crop&q=80' },
+      { id: 'narhe-3', storeName: 'JSPM Canteen Surplus', category: 'Prepared Food', unit: 'boxes', lat: 18.4500, lng: 73.8280, productName: 'Veg Thali Batch & Rice Combo', initialUnits: 20, remainingUnits: 15, soldUnits: 5, originalPrice: 100, publishedPrice: 50, wasteRiskScore: 80, deadline: new Date(Date.now() + 45 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Kitchen Fresh', imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80' },
+      // Alandi, Pune
+      { id: 'alandi-1', storeName: 'Mahesh Milk Center & Creamery', category: 'Dairy', unit: 'litres', lat: 18.6750, lng: 73.8986, productName: 'Pure Buffalo Milk (1L Pouch)', initialUnits: 25, remainingUnits: 18, soldUnits: 7, originalPrice: 70, publishedPrice: 40, wasteRiskScore: 70, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80' },
+      { id: 'alandi-2', storeName: 'Indrayani Sweets & Bakers', category: 'Bakery', unit: 'packs', lat: 18.6760, lng: 73.8990, productName: 'Assorted Cream Rolls & Doughnuts', initialUnits: 16, remainingUnits: 12, soldUnits: 4, originalPrice: 150, publishedPrice: 75, wasteRiskScore: 65, deadline: new Date(Date.now() + 100 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Freshly Baked', imageUrl: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&auto=format&fit=crop&q=80' },
+      // Mumbai (Dadar & Bandra)
+      { id: 'mumbai-1', storeName: 'Dadar Local Dairy', category: 'Dairy', unit: 'packs', lat: 19.0178, lng: 72.8478, productName: 'Fresh Malai Paneer (250g Block)', initialUnits: 14, remainingUnits: 10, soldUnits: 4, originalPrice: 110, publishedPrice: 60, wasteRiskScore: 75, deadline: new Date(Date.now() + 55 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Chilled & Fresh', imageUrl: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80' },
+      { id: 'mumbai-2', storeName: 'Bandra Artisan Bakery', category: 'Bakery', unit: 'packs', lat: 19.0596, lng: 72.8295, productName: 'Butter Croissant Pair', initialUnits: 12, remainingUnits: 9, soldUnits: 3, originalPrice: 200, publishedPrice: 100, wasteRiskScore: 68, deadline: new Date(Date.now() + 90 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&auto=format&fit=crop&q=80' },
+      { id: 'mumbai-3', storeName: 'Suburban Tiffin Services', category: 'Prepared Food', unit: 'boxes', lat: 19.0610, lng: 72.8310, productName: 'Paneer Butter Masala & Rotis Pack', initialUnits: 15, remainingUnits: 11, soldUnits: 4, originalPrice: 180, publishedPrice: 90, wasteRiskScore: 74, deadline: new Date(Date.now() + 50 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Kitchen Hot', imageUrl: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600&auto=format&fit=crop&q=80' },
+      { id: 'mumbai-4', storeName: 'Suburban Tiffin Services', category: 'Prepared Food', unit: 'boxes', lat: 19.0610, lng: 72.8310, productName: 'Veg Biryani Handi (Single Portion)', initialUnits: 10, remainingUnits: 7, soldUnits: 3, originalPrice: 160, publishedPrice: 85, wasteRiskScore: 72, deadline: new Date(Date.now() + 65 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Kitchen Fresh', imageUrl: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80' },
+      // Pune Central
+      { id: 'pune-1', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'packs', lat: 18.5220, lng: 73.8540, productName: 'Fresh Organic Malai Paneer (500g)', initialUnits: 12, remainingUnits: 10, soldUnits: 2, originalPrice: 220, publishedPrice: 110, wasteRiskScore: 74, deadline: new Date(Date.now() + 45 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Chilled Batch', imageUrl: CAT_IMAGES['Dairy'] },
+      { id: 'pune-2', storeName: 'Gokul Organic Dairy & Farm Fresh', category: 'Dairy', unit: 'litres', lat: 18.5220, lng: 73.8540, productName: 'Pasteurized Whole Cow Milk (1L Pouch)', initialUnits: 20, remainingUnits: 16, soldUnits: 4, originalPrice: 70, publishedPrice: 45, wasteRiskScore: 68, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80' },
+      { id: 'pune-3', storeName: 'ABC Gourmet Bakery', category: 'Bakery', unit: 'pieces', lat: 18.5255, lng: 73.8595, productName: 'Artisan Sourdough Loaf', initialUnits: 15, remainingUnits: 15, soldUnits: 0, originalPrice: 120, publishedPrice: 60, wasteRiskScore: 78, deadline: new Date(Date.now() + 60 * 60000).toISOString(), status: 'ACTIVE', freshnessTag: 'Verified Fresh', imageUrl: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=600&auto=format&fit=crop&q=80' }
     ];
 
     let state = {
-      deals: JSON.parse(localStorage.getItem('savebite_deals')) || INITIAL_DEALS,
+      deals: JSON.parse(localStorage.getItem('savebite_deals_v2')) || INITIAL_DEALS,
       userLat: 18.5204, userLng: 73.8567, radiusKm: 5.0, selectedCategory: 'ALL', formHorizonMinutes: 240
     };
 
-    function saveState() { localStorage.setItem('savebite_deals', JSON.stringify(state.deals)); }
+    function saveState() { localStorage.setItem('savebite_deals_v2', JSON.stringify(state.deals)); }
 
     function haversineDistance(lat1, lon1, lat2, lon2) {
       const R = 6371000;
@@ -678,11 +672,8 @@
         if (d.soldUnits > 0) { rev += d.soldUnits * d.publishedPrice; units += d.soldUnits; }
         if (d.status === 'SOLD_OUT' || d.remainingUnits === 0) soldCount++;
       });
-      document.getElementById('tel-revenue').innerText = `₹${rev}`;
-      document.getElementById('tel-diversion').innerText = `${(units * 0.40).toFixed(2)} kg`;
-      document.getElementById('tel-units').innerText = `${units} units rescued`;
-      document.getElementById('tel-co2e').innerText = `${(units * 0.40 * 2.5).toFixed(2)} kg`;
-      document.getElementById('tel-conversion').innerText = `${state.deals.length ? Math.round((soldCount / state.deals.length) * 100) : 0}%`;
+      const telRev = document.getElementById('tel-revenue');
+      if (telRev) telRev.innerText = `₹${rev}`;
 
       document.getElementById('merchant-deals-container').innerHTML = state.deals.map(d => `
         <div class="p-4 flex items-center justify-between">
@@ -937,9 +928,34 @@
       closeLocationModal(); renderDealsFeed();
     }
     function useLiveGPS() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => selectPresetLoc('Live GPS', pos.coords.latitude, pos.coords.longitude));
+      const btnText = document.getElementById('gps-btn-text');
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser. Please select your location manually from the top location dropdown.');
+        return;
       }
+      if (btnText) btnText.innerText = 'Fetching Location...';
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          let locName = `Live GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+            if (res.ok) {
+              const data = await res.json();
+              const city = data.address?.city || data.address?.town || data.address?.suburb;
+              if (city) locName = `${city} (Live GPS)`;
+            }
+          } catch(e){}
+          if (btnText) btnText.innerText = 'Use My GPS';
+          selectPresetLoc(locName, lat, lng);
+        },
+        err => {
+          if (btnText) btnText.innerText = 'Use My GPS';
+          alert('Location permission was denied or unavailable. Please manually select your location from the top location dropdown.');
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
     }
     function setRadius(r) { state.radiusKm = r; document.getElementById('radius-badge').innerText = `${r} km radius`; renderDealsFeed(); }
     function setCategory(cat) { state.selectedCategory = cat; renderDealsFeed(); }

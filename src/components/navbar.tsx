@@ -9,7 +9,6 @@ import {
   PlusCircle, 
   MapPin, 
   ShieldCheck, 
-  RotateCcw,
   ChevronDown,
   User as UserIcon,
   LogOut,
@@ -18,10 +17,10 @@ import {
   FileCheck
 } from 'lucide-react';
 import { POPULAR_LOCATIONS } from '@/lib/geo';
-import { resetDemoState } from '@/lib/store';
 import { subscribeAuth, logoutUser } from '@/lib/auth-store';
 import { User, UserRole } from '@/shared/types';
 import { AuthModal } from '@/components/auth/auth-modal';
+import { AddSurplusModal } from '@/components/merchant/add-surplus-modal';
 
 export function Navbar({ 
   currentLocation, 
@@ -37,6 +36,7 @@ export function Navbar({
   // Modals state
   const [showLocModal, setShowLocModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAddSurplusModal, setShowAddSurplusModal] = useState(false);
   const [authRolePreset, setAuthRolePreset] = useState<UserRole>('CONSUMER');
   const [authPromptMsg, setAuthPromptMsg] = useState<string | undefined>();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -77,13 +77,6 @@ export function Navbar({
     setActiveLoc(loc);
     if (onLocationChange) onLocationChange(loc);
     setShowLocModal(false);
-  };
-
-  const handleResetData = () => {
-    if (confirm('Reset all demo surplus data to default seed listings?')) {
-      resetDemoState();
-      window.location.reload();
-    }
   };
 
   const triggerAuthForRole = (role: UserRole, prompt?: string) => {
@@ -144,7 +137,7 @@ export function Navbar({
                     <Link
                       href="/merchant"
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                        pathname.startsWith('/merchant') && pathname !== '/merchant/add-deal'
+                        pathname.startsWith('/merchant')
                           ? 'bg-blue-50 text-blue-900 font-bold' 
                           : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
                       }`}
@@ -153,17 +146,14 @@ export function Navbar({
                       Merchant Hub
                     </Link>
 
-                    <Link
-                      href="/merchant/add-deal"
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                        pathname === '/merchant/add-deal'
-                          ? 'bg-emerald-600 text-white shadow-sm font-bold' 
-                          : 'bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600 hover:text-white'
-                      }`}
+                    <button
+                      type="button"
+                      onClick={() => setShowAddSurplusModal(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer"
                     >
-                      <PlusCircle className="w-4 h-4" />
-                      Add Surplus (+60 FPS Slider)
-                    </Link>
+                      <PlusCircle className="w-4 h-4 text-white" />
+                      + Add Surplus
+                    </button>
                   </>
                 )}
 
@@ -198,15 +188,6 @@ export function Navbar({
                   <ChevronDown className="w-3 h-3 text-zinc-500" />
                 </button>
               )}
-
-              {/* Reset Seed Button */}
-              <button
-                onClick={handleResetData}
-                className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors hidden sm:block"
-                title="Reset Seed Demo Data"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
 
               {/* User Authentication Badge / Dropdown */}
               {currentUser ? (
@@ -254,19 +235,19 @@ export function Navbar({
                         {currentUser.role === 'ADMIN' && (
                           <div className="mt-1 text-[10px] font-bold text-emerald-400 bg-zinc-900 px-2 py-0.5 rounded flex items-center gap-1">
                             <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                            <span>Single Admin Profile</span>
+                            <span>Platform Admin</span>
                           </div>
                         )}
                       </div>
 
                       <div className="py-1">
                         <Link
-                          href="/profile"
+                          href={currentUser.role === 'ADMIN' ? "/admin" : "/profile"}
                           onClick={() => setShowUserDropdown(false)}
                           className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50 flex items-center gap-2"
                         >
                           <UserIcon className="w-4 h-4 text-emerald-600" />
-                          {currentUser.role === 'SHOPKEEPER' ? 'Manage Business Profile & Products' : 'My Account Profile'}
+                          {currentUser.role === 'SHOPKEEPER' ? 'Manage Business Profile & Products' : currentUser.role === 'ADMIN' ? 'Admin Console' : 'My Account Profile'}
                         </Link>
                         <button
                           onClick={() => {
@@ -326,21 +307,20 @@ export function Navbar({
                 <Link
                   href="/merchant"
                   className={`px-3 py-1.5 rounded-md whitespace-nowrap font-bold ${
-                    pathname.startsWith('/merchant') && pathname !== '/merchant/add-deal' 
+                    pathname.startsWith('/merchant')
                       ? 'bg-blue-100 text-blue-900' 
                       : 'text-zinc-600'
                   }`}
                 >
                   🏪 Merchant Hub
                 </Link>
-                <Link
-                  href="/merchant/add-deal"
-                  className={`px-3 py-1.5 rounded-md whitespace-nowrap font-bold ${
-                    pathname === '/merchant/add-deal' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700'
-                  }`}
+                <button
+                  type="button"
+                  onClick={() => setShowAddSurplusModal(true)}
+                  className="px-3 py-1.5 rounded-md whitespace-nowrap font-bold bg-emerald-600 text-white shadow-sm"
                 >
-                  ✨ Add Surplus
-                </Link>
+                  ✨ + Add Surplus
+                </button>
               </>
             )}
 
@@ -452,6 +432,12 @@ export function Navbar({
         onClose={() => setShowAuthModal(false)}
         initialRole={authRolePreset}
         customPrompt={authPromptMsg}
+      />
+
+      {/* Global Add Surplus Modal */}
+      <AddSurplusModal
+        isOpen={showAddSurplusModal}
+        onClose={() => setShowAddSurplusModal(false)}
       />
     </>
   );

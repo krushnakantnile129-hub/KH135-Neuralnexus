@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 export type UserRole = 'CONSUMER' | 'SHOPKEEPER' | 'ADMIN';
 
 export type KycStatus = 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
@@ -33,9 +32,6 @@ export interface User {
   kycData?: MerchantKyc;
 }
 
-export type StoreCategory = 'BAKERY' | 'CAFE' | 'RESTAURANT' | 'CANTEEN' | 'GROCERY';
-export type StoreCategory = 'BAKERY' | 'CAFE' | 'RESTAURANT' | 'CANTEEN' | 'GROCERY' | 'DAIRY';
-=======
 export type StoreCategory = 
   | 'Bakery'
   | 'Prepared Food'
@@ -55,7 +51,6 @@ export type StoreCategory =
   | 'OTHER';
 
 export type ProductUnit = 'pieces' | 'kg' | 'litres' | 'packs' | 'plates' | 'portions' | 'boxes';
->>>>>>> 5106b20 (Enhance Add Product form with comprehensive product, expiry, velocity tracking, explainable risk reasons, and pre-publish confirmation card)
 
 export type SalesVelocity = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -121,6 +116,14 @@ export interface Deal {
   riskLevel?: RiskLevel;
   riskReasons?: string[];
   
+  // Legacy & dynamic property aliases for multi-region schema matching
+  shopName?: string;
+  title?: string;
+  locationName?: string;
+  discountedPrice?: number;
+  image?: string;
+  pickupWindow?: string;
+
   status: DealStatus;
   freshnessTag?: string;
   createdAt: string;

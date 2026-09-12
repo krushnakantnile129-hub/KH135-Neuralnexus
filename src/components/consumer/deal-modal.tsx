@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Deal } from '@/shared/types';
 import { formatINR, formatTimeRemaining } from '@/lib/utils';
 import { formatDistance, getGoogleMapsUrl, getAppleMapsUrl } from '@/lib/geo';
@@ -13,8 +13,7 @@ import {
   ShieldAlert, 
   Store, 
   ExternalLink,
-  Sparkles,
-  Share2
+  X
 } from 'lucide-react';
 
 interface Props {
@@ -30,9 +29,26 @@ export function DealModal({ deal, onClose }: Props) {
   const googleMapsUrl = getGoogleMapsUrl(deal.latitude, deal.longitude, deal.storeName);
   const appleMapsUrl = getAppleMapsUrl(deal.latitude, deal.longitude, deal.storeName);
 
+  // Close modal on Escape key press (Keyboard accessibility)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-zinc-200 animate-in fade-in zoom-in-95 duration-150 my-8">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto cursor-pointer"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-zinc-200 animate-in fade-in zoom-in-95 duration-150 my-8 relative cursor-default"
+      >
         {/* Header Image */}
         <div className="relative h-56 w-full bg-zinc-900">
           {deal.imageUrl ? (
@@ -47,11 +63,13 @@ export function DealModal({ deal, onClose }: Props) {
             </div>
           )}
 
+          {/* Clear 'X' Close Button in Top-Right Corner */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black transition-colors font-bold text-sm"
+            aria-label="Close modal"
+            className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-all shadow-lg border border-white/20 active:scale-95 cursor-pointer"
           >
-            ✕
+            <X className="w-5 h-5 text-white" />
           </button>
 
           <div className="absolute top-4 left-4 bg-rose-600 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">

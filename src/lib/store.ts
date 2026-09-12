@@ -1,8 +1,8 @@
 import { Store, Deal, MerchantMetrics, DealStatus } from '../shared/types';
 import { SEED_STORES, getInitialDeals } from './seed-data';
 
-const STORES_KEY = 'savebite_stores_v1';
-const DEALS_KEY = 'savebite_deals_v1';
+const STORES_KEY = 'savebite_stores_v2';
+const DEALS_KEY = 'savebite_deals_v2';
 
 // In-memory singletons for server routes / fallback
 let memoryStores: Store[] = [...SEED_STORES];
@@ -77,6 +77,11 @@ export function saveDeals(deals: Deal[]): void {
   memoryDeals = deals;
   if (isBrowser()) {
     localStorage.setItem(DEALS_KEY, JSON.stringify(deals));
+    try {
+      window.dispatchEvent(new Event('deals-updated'));
+    } catch (e) {
+      // Ignore in non-DOM test env
+    }
   }
 }
 

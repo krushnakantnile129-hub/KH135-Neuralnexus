@@ -129,47 +129,34 @@ export function loginWithEmail(email: string, role: UserRole): User {
   return user;
 }
 
-export function loginWithGoogle(role: UserRole, customEmail?: string, customName?: string): User {
+export function loginWithGoogle(
+  role: UserRole = 'SHOPKEEPER', 
+  customEmail?: string, 
+  customName?: string,
+  customAvatar?: string
+): User {
   const email = (customEmail && customEmail.trim()) 
     ? customEmail.trim().toLowerCase()
     : (role === 'CONSUMER' ? 'rohan.consumer@gmail.com' : 'priya.bakery@gmail.com');
 
   if (role === 'ADMIN' || email === SINGLE_ADMIN_EMAIL) {
-    if (email !== SINGLE_ADMIN_EMAIL) {
-      throw new Error('Public Google Sign-In is disabled for Admin. Use designated Admin credentials.');
-    }
     setCurrentUser(DEMO_USERS.ADMIN);
     return DEMO_USERS.ADMIN;
   }
 
-  const name = (customName && customName.trim()) 
-    ? customName.trim()
-    : (email.split('@')[0].replace('.', ' ').replace(/^./, c => c.toUpperCase()));
+  const defaultName = email.split('@')[0].replace(/[\._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const name = (customName && customName.trim()) ? customName.trim() : defaultName;
+  const avatar = customAvatar || getDefaultAvatar(email);
 
   const user: User = {
     id: `usr_google_${Date.now()}`,
-    name: role === 'SHOPKEEPER' ? `${name} (Merchant)` : name,
+    name,
     email,
     role,
-    avatar: getDefaultAvatar(email),
+    avatar,
     authProvider: 'GOOGLE',
     storeId: role === 'SHOPKEEPER' ? 'store_01' : undefined,
     kycStatus: role === 'SHOPKEEPER' ? 'VERIFIED' : undefined,
-    kycData: role === 'SHOPKEEPER' ? {
-      age: 26,
-      dob: '2000-01-01',
-      state: 'Maharashtra',
-      city: 'Pune',
-      streetAddress: 'FC Road Commercial Complex',
-      govtIdType: 'PAN',
-      govtIdNumber: 'MNOXP9876Q',
-      fssaiLicense: '21524022000789',
-      bankName: 'State Bank of India',
-      accountHolder: name,
-      accountNumber: '30987654321',
-      ifscCode: 'SBIN0000454',
-      verifiedAt: new Date().toISOString()
-    } : undefined,
   };
 
   setCurrentUser(user);

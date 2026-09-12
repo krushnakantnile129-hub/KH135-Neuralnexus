@@ -21,8 +21,29 @@ export async function GET(request: NextRequest) {
       if (d.status !== 'ACTIVE' || d.remainingUnits <= 0 || !isNotExpired) {
         return false;
       }
-      if (category && category !== 'ALL' && d.category !== category) {
-        return false;
+      if (category && category !== 'ALL') {
+        const catLower = category.toLowerCase();
+        const dealCat = (d.category || '').toLowerCase();
+        const dealStoreCat = (d.storeCategory || '').toLowerCase();
+
+        const isDairy = catLower.includes('dairy') || catLower.includes('farm');
+        const isBakery = catLower.includes('baker');
+        const isCafe = catLower.includes('cafe') || catLower.includes('café');
+        const isRestaurant = catLower.includes('restaurant');
+        const isCanteen = catLower.includes('canteen');
+        const isGrocery = catLower.includes('grocer');
+
+        const matchesCategory =
+          dealCat === catLower ||
+          dealStoreCat === catLower ||
+          (isDairy && (dealCat.includes('dairy') || dealStoreCat.includes('dairy'))) ||
+          (isBakery && (dealCat.includes('baker') || dealStoreCat.includes('baker'))) ||
+          (isCafe && (dealCat.includes('cafe') || dealStoreCat.includes('cafe'))) ||
+          (isRestaurant && (dealCat.includes('rest') || dealStoreCat.includes('rest'))) ||
+          (isCanteen && (dealCat.includes('cant') || dealStoreCat.includes('cant'))) ||
+          (isGrocery && (dealCat.includes('groc') || dealStoreCat.includes('groc')));
+
+        if (!matchesCategory) return false;
       }
       return true;
     })
