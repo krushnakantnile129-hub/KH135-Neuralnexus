@@ -1,9 +1,8 @@
 import { Store, Deal, MerchantMetrics, DealStatus } from '../shared/types';
 import { SEED_STORES, getInitialDeals } from './seed-data';
-import { CATEGORY_MASS_KG } from './utils';
 
-const STORES_KEY = 'savebite_stores_v1';
-const DEALS_KEY = 'savebite_deals_v1';
+const STORES_KEY = 'savebite_stores_v2';
+const DEALS_KEY = 'savebite_deals_v2';
 
 // In-memory singletons for server routes / fallback
 let memoryStores: Store[] = [...SEED_STORES];
@@ -78,6 +77,11 @@ export function saveDeals(deals: Deal[]): void {
   memoryDeals = deals;
   if (isBrowser()) {
     localStorage.setItem(DEALS_KEY, JSON.stringify(deals));
+    try {
+      window.dispatchEvent(new Event('deals-updated'));
+    } catch (e) {
+      // Ignore in non-DOM test env
+    }
   }
 }
 
@@ -95,6 +99,20 @@ export function updateDealStatus(dealId: string, status: DealStatus): Deal | nul
   deals[index] = {
     ...deals[index],
     status,
+    updatedAt: new Date().toISOString(),
+  };
+  saveDeals(deals);
+  return deals[index];
+}
+
+export function updateDealDetails(dealId: string, updates: Partial<Deal>): Deal | null {
+  const deals = loadDeals();
+  const index = deals.findIndex(d => d.id === dealId);
+  if (index === -1) return null;
+
+  deals[index] = {
+    ...deals[index],
+    ...updates,
     updatedAt: new Date().toISOString(),
   };
   saveDeals(deals);
@@ -145,19 +163,14 @@ export function computeMerchantMetrics(storeId?: string): MerchantMetrics {
   const deals = loadDeals().filter(d => (!storeId || d.storeId === storeId));
   
   let revenueRecovered = 0;
-  let diversionWeightKg = 0;
   let totalUnitsRescued = 0;
   let dealsPublished = deals.length;
-  let dealsWithSales = 0;
   let dealsSoldOut = 0;
 
   for (const d of deals) {
     const sold = d.soldUnits;
     if (sold > 0) {
-      dealsWithSales++;
       revenueRecovered += sold * d.publishedPrice;
-      const unitWeight = CATEGORY_MASS_KG[d.category] || 0.35;
-      diversionWeightKg += sold * unitWeight;
       totalUnitsRescued += sold;
     }
     if (d.status === 'SOLD_OUT') {
@@ -165,17 +178,8 @@ export function computeMerchantMetrics(storeId?: string): MerchantMetrics {
     }
   }
 
-  // Avoided CO2e Footprint: Total Diversion (kg) * 2.5 kg CO2e/kg (FR-DASH)
-  const avoidedCo2eKg = +(diversionWeightKg * 2.5).toFixed(2);
-  const rescueConversionRatio = dealsPublished > 0 
-    ? Math.round((dealsWithSales / dealsPublished) * 100) 
-    : 0;
-
   return {
     revenueRecovered: Math.round(revenueRecovered),
-    diversionWeightKg: +diversionWeightKg.toFixed(2),
-    avoidedCo2eKg,
-    rescueConversionRatio,
     dealsPublished,
     dealsSoldOut,
     totalUnitsRescued,

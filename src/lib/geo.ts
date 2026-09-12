@@ -52,9 +52,10 @@ export function getAppleMapsUrl(lat: number, lng: number, storeName?: string): s
  * Default Seed Locations for quick testing
  */
 export const POPULAR_LOCATIONS = [
-  { name: 'Pune Campus (Shivajinagar / PRD Base)', lat: 18.5204, lng: 73.8567 },
-  { name: 'Koregaon Park, Pune', lat: 18.5362, lng: 73.8939 },
+  { name: 'Pune Central (Shivajinagar / PRD Base)', lat: 18.5204, lng: 73.8567 },
+  { name: 'Narhe, Pune', lat: 18.4485, lng: 73.8266 },
+  { name: 'Alandi, Pune', lat: 18.6750, lng: 73.8986 },
+  { name: 'Dadar West, Mumbai', lat: 19.0178, lng: 72.8478 },
   { name: 'Bandra West, Mumbai', lat: 19.0596, lng: 72.8295 },
-  { name: 'Indiranagar, Bangalore', lat: 12.9784, lng: 77.6408 },
-  { name: 'Connaught Place, New Delhi', lat: 28.6315, lng: 77.2167 },
+  { name: 'Koregaon Park, Pune', lat: 18.5362, lng: 73.8939 },
 ];

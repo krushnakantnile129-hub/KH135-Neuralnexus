@@ -2,20 +2,25 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   Store as StoreIcon, 
   ShoppingBag, 
   PlusCircle, 
   MapPin, 
   ShieldCheck, 
-  Sparkles, 
-  RotateCcw,
-  Sliders,
-  ChevronDown
+  ChevronDown,
+  User as UserIcon,
+  LogOut,
+  LogIn,
+  CheckCircle2,
+  FileCheck
 } from 'lucide-react';
 import { POPULAR_LOCATIONS } from '@/lib/geo';
-import { resetDemoState } from '@/lib/store';
+import { subscribeAuth, logoutUser } from '@/lib/auth-store';
+import { User, UserRole } from '@/shared/types';
+import { AuthModal } from '@/components/auth/auth-modal';
+import { AddSurplusModal } from '@/components/merchant/add-surplus-modal';
 
 export function Navbar({ 
   currentLocation, 
@@ -25,10 +30,29 @@ export function Navbar({
   onLocationChange?: (loc: { name: string; lat: number; lng: number }) => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Modals state
   const [showLocModal, setShowLocModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAddSurplusModal, setShowAddSurplusModal] = useState(false);
+  const [authRolePreset, setAuthRolePreset] = useState<UserRole>('CONSUMER');
+  const [authPromptMsg, setAuthPromptMsg] = useState<string | undefined>();
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  // Location state
   const [customLat, setCustomLat] = useState('18.5204');
   const [customLng, setCustomLng] = useState('73.8567');
   const [activeLoc, setActiveLoc] = useState(currentLocation || POPULAR_LOCATIONS[0]);
+
+  // Subscribe to auth state
+  useEffect(() => {
+    const unsubscribe = subscribeAuth((u) => {
+      setCurrentUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (currentLocation) {
@@ -55,12 +79,16 @@ export function Navbar({
     setShowLocModal(false);
   };
 
-  const handleResetData = () => {
-    if (confirm('Reset all demo surplus data to default seed listings?')) {
-      resetDemoState();
-      window.location.reload();
-    }
+  const triggerAuthForRole = (role: UserRole, prompt?: string) => {
+    setAuthRolePreset(role);
+    setAuthPromptMsg(prompt);
+    setShowAuthModal(true);
   };
+
+  // Determine active view roles for Navigation Bar Isolation
+  const isConsumerView = !currentUser || currentUser.role === 'CONSUMER';
+  const isShopkeeperView = currentUser?.role === 'SHOPKEEPER';
+  const isAdminView = currentUser?.role === 'ADMIN';
 
   return (
     <>
@@ -69,128 +97,243 @@ export function Navbar({
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-6">
-              <Link href="/" className="flex items-center gap-2 group">
+              <Link href={isShopkeeperView ? "/merchant" : isAdminView ? "/admin" : "/"} className="flex items-center gap-2 group">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                  <span className="text-xl">🥗</span>
+                  <span className="text-xl">🌿</span>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-xl tracking-tight text-zinc-900">ResQFood</span>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">10 KM Proximity</span>
+                    <span className="font-bold text-xl tracking-tight text-zinc-900">SAVE-BITE</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      {isShopkeeperView ? 'Merchant Portal' : isAdminView ? 'Admin Console' : 'Zero-Checkout'}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 font-medium leading-none hidden sm:block">Food-Waste Reduction &amp; Smart Pricing</p>
+                  <p className="text-[11px] text-zinc-500 font-medium leading-none hidden sm:block">
+                    {isShopkeeperView ? 'Store Surplus Clearance Engine' : isAdminView ? 'Platform Governance & RBAC' : 'Hyper-Local Surplus Food Marketplace'}
+                  </p>
                 </div>
               </Link>
 
-              {/* Navigation Links */}
+              {/* Navigation Links (STRICT ROLE ISOLATION) */}
               <nav className="hidden md:flex items-center gap-1 pl-4 border-l border-zinc-200">
-                <Link
-                  href="/"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === '/' 
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold' 
-                      : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
-                  }`}
-                >
-                  <ShoppingBag className="w-4 h-4 text-emerald-600" />
-                  Consumer Deals Feed
-                </Link>
-                <Link
-                  href="/merchant"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    pathname.startsWith('/merchant') && pathname !== '/merchant/add-deal'
-                      ? 'bg-emerald-50 text-emerald-800 font-semibold' 
-                      : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
-                  }`}
-                >
-                  <StoreIcon className="w-4 h-4 text-emerald-600" />
-                  Merchant Control Center
-                </Link>
-                <Link
-                  href="/merchant/add-deal"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === '/merchant/add-deal'
-                      ? 'bg-emerald-600 text-white shadow-sm' 
-                      : 'bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600 hover:text-white'
-                  }`}
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  Add Surplus (+60 FPS Slider)
-                </Link>
-                <Link
-                  href="/admin"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === '/admin'
-                      ? 'bg-zinc-800 text-white font-semibold' 
-                      : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4 text-zinc-400" />
-                  Admin / RBAC
-                </Link>
+                {/* 1. CONSUMER / GUEST NAVIGATION */}
+                {isConsumerView && (
+                  <Link
+                    href="/"
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                      pathname === '/' 
+                        ? 'bg-emerald-50 text-emerald-800 font-semibold' 
+                        : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+                    }`}
+                  >
+                    <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                    Consumer Deals Feed
+                  </Link>
+                )}
+
+                {/* 2. SHOPKEEPER NAVIGATION */}
+                {isShopkeeperView && (
+                  <>
+                    <Link
+                      href="/merchant"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                        pathname.startsWith('/merchant')
+                          ? 'bg-blue-50 text-blue-900 font-bold' 
+                          : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+                      }`}
+                    >
+                      <StoreIcon className="w-4 h-4 text-blue-600" />
+                      Merchant Hub
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAddSurplusModal(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4 text-white" />
+                      + Add Surplus
+                    </button>
+                  </>
+                )}
+
+                {/* 3. ADMIN NAVIGATION */}
+                {isAdminView && (
+                  <Link
+                    href="/admin"
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                      pathname === '/admin'
+                        ? 'bg-zinc-900 text-white shadow-sm' 
+                        : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    Platform Admin Console
+                  </Link>
+                )}
               </nav>
             </div>
 
             {/* Right Header Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Location Pill */}
-              <button
-                onClick={() => setShowLocModal(true)}
-                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 transition-all"
-                title="Change your GPS Coordinates / Proximity Area"
-              >
-                <MapPin className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-                <span className="max-w-[130px] sm:max-w-[180px] truncate">{activeLoc.name}</span>
-                <ChevronDown className="w-3 h-3 text-zinc-500" />
-              </button>
+              {/* Location Pill (Consumer Mode) */}
+              {isConsumerView && (
+                <button
+                  onClick={() => setShowLocModal(true)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 transition-all"
+                  title="Change your GPS Coordinates / Proximity Area"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+                  <span className="max-w-[110px] sm:max-w-[150px] truncate">{activeLoc.name}</span>
+                  <ChevronDown className="w-3 h-3 text-zinc-500" />
+                </button>
+              )}
 
-              {/* Reset Seed Button */}
-              <button
-                onClick={handleResetData}
-                className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors"
-                title="Reset Seed Demo Data"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
+              {/* User Authentication Badge / Dropdown */}
+              {currentUser ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-all"
+                  >
+                    <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm overflow-hidden shrink-0">
+                      {currentUser.avatar ? (
+                        <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                      ) : (
+                        currentUser.name.charAt(0)
+                      )}
+                    </div>
+                    <div className="text-left hidden sm:block">
+                      <div className="text-xs font-bold text-zinc-900 leading-none truncate max-w-[120px]">{currentUser.name}</div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className={`text-[9px] uppercase font-bold tracking-wider px-1 py-0.2 rounded ${
+                          currentUser.role === 'SHOPKEEPER' ? 'bg-blue-100 text-blue-900 border border-blue-200' :
+                          currentUser.role === 'ADMIN' ? 'bg-zinc-900 text-white' :
+                          'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {currentUser.role === 'SHOPKEEPER' ? 'Verified Merchant' : currentUser.role}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showUserDropdown && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-zinc-200 py-2 z-50 animate-in fade-in zoom-in-95">
+                      <div className="px-4 py-2 border-b border-zinc-100">
+                        <p className="text-xs font-bold text-zinc-900">{currentUser.name}</p>
+                        <p className="text-[11px] text-zinc-500 truncate">{currentUser.email}</p>
+                        
+                        {/* Verified Merchant Badge */}
+                        {currentUser.role === 'SHOPKEEPER' && (
+                          <div className="mt-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 flex items-center gap-1">
+                            <FileCheck className="w-3 h-3 text-blue-600" />
+                            <span>FSSAI License &amp; MH Verified</span>
+                          </div>
+                        )}
+                        {currentUser.role === 'ADMIN' && (
+                          <div className="mt-1 text-[10px] font-bold text-emerald-400 bg-zinc-900 px-2 py-0.5 rounded flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                            <span>Platform Admin</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="py-1">
+                        <Link
+                          href={currentUser.role === 'ADMIN' ? "/admin" : "/profile"}
+                          onClick={() => setShowUserDropdown(false)}
+                          className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50 flex items-center gap-2"
+                        >
+                          <UserIcon className="w-4 h-4 text-emerald-600" />
+                          {currentUser.role === 'SHOPKEEPER' ? 'Manage Business Profile & Products' : currentUser.role === 'ADMIN' ? 'Admin Console' : 'My Account Profile'}
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setShowUserDropdown(false);
+                            triggerAuthForRole(currentUser.role, 'Switch profile or role');
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs text-zinc-700 hover:bg-zinc-50 flex items-center gap-2"
+                        >
+                          <UserIcon className="w-4 h-4 text-zinc-400" />
+                          Switch Account / Profile
+                        </button>
+                      </div>
+
+                      <div className="border-t border-zinc-100 pt-1">
+                        <button
+                          onClick={() => {
+                            logoutUser();
+                            setShowUserDropdown(false);
+                            router.push('/');
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-2"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => triggerAuthForRole('CONSUMER')}
+                  className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm shadow-emerald-600/20 flex items-center gap-1.5 transition-all"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In / Register</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Mobile Navigation Row */}
+          {/* Mobile Navigation Row (ROLE ISOLATED) */}
           <div className="flex md:hidden items-center justify-around py-2 border-t border-zinc-100 text-xs font-medium overflow-x-auto gap-1">
-            <Link
-              href="/"
-              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap ${
-                pathname === '/' ? 'bg-emerald-100 text-emerald-900 font-bold' : 'text-zinc-600'
-              }`}
-            >
-              🛍️ Deals
-            </Link>
-            <Link
-              href="/merchant"
-              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap ${
-                pathname.startsWith('/merchant') && pathname !== '/merchant/add-deal' 
-                  ? 'bg-emerald-100 text-emerald-900 font-bold' 
-                  : 'text-zinc-600'
-              }`}
-            >
-              🏪 Merchant Hub
-            </Link>
-            <Link
-              href="/merchant/add-deal"
-              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap ${
-                pathname === '/merchant/add-deal' ? 'bg-emerald-600 text-white font-bold' : 'bg-emerald-50 text-emerald-700'
-              }`}
-            >
-              ✨ Add Surplus
-            </Link>
-            <Link
-              href="/admin"
-              className={`px-2.5 py-1.5 rounded-md whitespace-nowrap ${
-                pathname === '/admin' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-600'
-              }`}
-            >
-              🛡️ Admin
-            </Link>
+            {isConsumerView && (
+              <Link
+                href="/"
+                className={`px-3 py-1.5 rounded-md whitespace-nowrap font-bold ${
+                  pathname === '/' ? 'bg-emerald-100 text-emerald-900' : 'text-zinc-600'
+                }`}
+              >
+                🛍️ Deals Feed
+              </Link>
+            )}
+
+            {isShopkeeperView && (
+              <>
+                <Link
+                  href="/merchant"
+                  className={`px-3 py-1.5 rounded-md whitespace-nowrap font-bold ${
+                    pathname.startsWith('/merchant')
+                      ? 'bg-blue-100 text-blue-900' 
+                      : 'text-zinc-600'
+                  }`}
+                >
+                  🏪 Merchant Hub
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowAddSurplusModal(true)}
+                  className="px-3 py-1.5 rounded-md whitespace-nowrap font-bold bg-emerald-600 text-white shadow-sm"
+                >
+                  ✨ + Add Surplus
+                </button>
+              </>
+            )}
+
+            {isAdminView && (
+              <Link
+                href="/admin"
+                className={`px-3 py-1.5 rounded-md whitespace-nowrap font-bold ${
+                  pathname === '/admin' ? 'bg-zinc-900 text-white' : 'text-zinc-600'
+                }`}
+              >
+                🛡️ Platform Admin
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -282,6 +425,20 @@ export function Navbar({
           </div>
         </div>
       )}
+
+      {/* Global Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialRole={authRolePreset}
+        customPrompt={authPromptMsg}
+      />
+
+      {/* Global Add Surplus Modal */}
+      <AddSurplusModal
+        isOpen={showAddSurplusModal}
+        onClose={() => setShowAddSurplusModal(false)}
+      />
     </>
   );
 }

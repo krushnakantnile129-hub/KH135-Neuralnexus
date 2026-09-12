@@ -1,167 +1,83 @@
 import { RiskInput, RiskEvaluationResult, RiskLevel } from '../types';
-import { formatDisplayDate, formatExpiryCountdown } from '@/lib/utils';
 
 /**
- * ResQFood Rule-Based Explainable Waste Risk & Pricing Engine
+ * Enhanced Explainable Waste Risk Engine
  * 
- * Evaluates:
- * - Manufacturing date & Expiry date
- * - Remaining shelf life percentage & multi-day countdown
- * - Current stock quantity & selling velocity
- * - Original price vs discounted clearance price
+ * Formula:
+ * W = clamp[0, 100]( 0.40 * S_time + 0.35 * S_stock + 0.25 * S_velocity - 0.25 * S_discount )
  */
 export function evaluateWasteRisk(input: RiskInput): RiskEvaluationResult {
   const now = Date.now();
-  
-  // 1. Resolve Expiry Date/Time (Time is OPTIONAL)
-  let expiryMs: number;
-  const hasExpiryTime = !!(input.expiryTime && input.expiryTime.trim()) || !!input.hasExpiryTime;
-  
-  if (input.expiryDate) {
-    if (input.expiryDate.includes('T')) {
-      expiryMs = new Date(input.expiryDate).getTime();
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(input.expiryDate)) {
-      const [y, m, d] = input.expiryDate.split('-').map(Number);
-      if (hasExpiryTime && input.expiryTime) {
-        const [hh, mm] = input.expiryTime.split(':').map(Number);
-        expiryMs = new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0).getTime();
-      } else {
-        // End of that date
-        expiryMs = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
-      }
-    } else {
-      expiryMs = new Date(input.expiryDate).getTime();
-    }
-  } else if (input.deadlineIso) {
-    expiryMs = new Date(input.deadlineIso).getTime();
-  } else {
-    // Default: end of today
-    const today = new Date();
-    expiryMs = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).getTime();
-  }
+  const deadlineMs = new Date(input.deadlineIso).getTime();
+  const diffMs = deadlineMs - now;
+  const remainingMinutes = Math.round(diffMs / 60000);
+  const remainingHours = Math.max(0.2, remainingMinutes / 60);
 
-  // 2. Resolve Manufacturing Date/Time (Time is OPTIONAL)
-  let mfgMs: number;
-  if (input.manufacturingDate) {
-    if (input.manufacturingDate.includes('T')) {
-      mfgMs = new Date(input.manufacturingDate).getTime();
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(input.manufacturingDate)) {
-      const [y, m, d] = input.manufacturingDate.split('-').map(Number);
-      if (input.manufacturingTime && input.manufacturingTime.trim()) {
-        const [hh, mm] = input.manufacturingTime.split(':').map(Number);
-        mfgMs = new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0).getTime();
-      } else {
-        mfgMs = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
-      }
-    } else {
-      mfgMs = new Date(input.manufacturingDate).getTime();
-    }
-  } else if (input.prepDateTimeIso) {
-    mfgMs = new Date(input.prepDateTimeIso).getTime();
-  } else if (input.prepDate) {
-    mfgMs = new Date(`${input.prepDate}T00:00:00`).getTime();
-  } else {
-    mfgMs = expiryMs - (24 * 60 * 60 * 1000);
-  }
+  // Time remaining string formatting
+  let timeRemainingFormatted = '0m';
+  let windowStatus: 'safe' | 'warning' | 'critical' | 'expired' = 'safe';
 
-  // Safety check: if mfgMs is invalid or >= expiryMs, set default window
-  if (isNaN(mfgMs) || mfgMs >= expiryMs) {
-    mfgMs = expiryMs - (12 * 60 * 60 * 1000);
-  }
-
-  const remainingMs = Math.max(0, expiryMs - now);
-  const remainingMinutes = Math.round(remainingMs / 60000);
-  const remainingHours = Math.max(0.1, remainingMinutes / 60);
-  const remainingDays = Math.round((remainingMs / (24 * 60 * 60 * 1000)) * 10) / 10;
-
-  const totalLifeMs = Math.max(60000, expiryMs - mfgMs);
-  const totalLifeMinutes = Math.round(totalLifeMs / 60000);
-  const totalLifeDays = Math.round((totalLifeMs / (24 * 60 * 60 * 1000)) * 10) / 10;
-
-  const rawRemainingLifePct = (remainingMs / totalLifeMs) * 100;
-  const remainingLifePct = Math.min(100, Math.max(0, Math.round(rawRemainingLifePct)));
-
-  // 3. Formatted Date Outputs
-  const manufacturingDateFormatted = formatDisplayDate(new Date(mfgMs));
-  const expiryDateFormatted = formatDisplayDate(new Date(expiryMs));
-  const countdownResult = formatExpiryCountdown(new Date(expiryMs));
-  const expiryCountdownFormatted = countdownResult.text;
-  const isExpired = countdownResult.isExpired || remainingMinutes <= 0;
-
-  // 4. Calculate Urgency Level & Score (50% Weight)
-  let urgencyLevel: 'Low' | 'Medium' | 'High' | 'Critical' | 'Expired';
-  let urgencyScore: number;
-  let windowStatus: 'safe' | 'warning' | 'critical' | 'expired';
-
-  if (isExpired || remainingLifePct <= 0) {
-    urgencyLevel = 'Expired';
-    urgencyScore = 100;
+  if (diffMs <= 0 || remainingMinutes <= 0) {
+    timeRemainingFormatted = 'Expired';
     windowStatus = 'expired';
-  } else if (remainingLifePct < 10) {
-    urgencyLevel = 'Critical';
-    urgencyScore = Math.min(100, Math.max(85, Math.round(100 - remainingLifePct * 1.5)));
-    windowStatus = 'critical';
-  } else if (remainingLifePct <= 25) {
-    urgencyLevel = 'High';
-    urgencyScore = Math.min(84, Math.max(65, Math.round(85 - ((remainingLifePct - 10) / 15) * 20)));
-    windowStatus = remainingHours <= 12 ? 'critical' : 'warning';
-  } else if (remainingLifePct <= 50) {
-    urgencyLevel = 'Medium';
-    urgencyScore = Math.min(64, Math.max(35, Math.round(65 - ((remainingLifePct - 25) / 25) * 30)));
-    windowStatus = 'warning';
   } else {
-    urgencyLevel = 'Low';
-    urgencyScore = Math.min(34, Math.max(5, Math.round(35 - ((remainingLifePct - 50) / 50) * 30)));
-    windowStatus = 'safe';
+    const hours = Math.floor(remainingMinutes / 60);
+    const mins = remainingMinutes % 60;
+    if (hours > 0 && mins > 0) {
+      timeRemainingFormatted = `${hours}h ${mins}m`;
+    } else if (hours > 0) {
+      timeRemainingFormatted = `${hours}h`;
+    } else {
+      timeRemainingFormatted = `${mins}m`;
+    }
+
+    if (remainingMinutes > 180) {
+      windowStatus = 'safe'; // 🟢 > 3h
+    } else if (remainingMinutes >= 60) {
+      windowStatus = 'warning'; // 🟡 1h - 3h
+    } else {
+      windowStatus = 'critical'; // 🔴 < 1h
+    }
   }
 
-  // 5. Calculate Stock Pressure Score (30% Weight)
-  const velRates: Record<string, number> = { LOW: 1.5, MEDIUM: 3.5, HIGH: 6.0 };
-  const effectiveVelocity = typeof input.salesVelocityNumeric === 'number' && input.salesVelocityNumeric > 0
-    ? input.salesVelocityNumeric
-    : (velRates[input.salesVelocity] || 2.5);
-
-  const expectedSalesUntilExpiry = Math.max(0.1, Math.round(effectiveVelocity * remainingHours * 10) / 10);
-  const stockPressureRatio = input.quantity / Math.max(expectedSalesUntilExpiry, 1);
-  const stockPressureScore = Math.min(100, Math.max(0, Math.round(stockPressureRatio * 50)));
-
-  // 6. Calculate Sales Risk Score (20% Weight)
-  let salesRiskScore = 50;
-  if (effectiveVelocity < 2.0) {
-    salesRiskScore = 85;
-  } else if (effectiveVelocity <= 5.0) {
-    salesRiskScore = 50;
+  // 1. Time Urgency Vector S_time (w_t = 0.40)
+  let sTime = 30;
+  if (remainingMinutes <= 0) {
+    sTime = 100;
+  } else if (remainingMinutes <= 60) {
+    sTime = 90;
+  } else if (remainingMinutes <= 120) {
+    sTime = 65;
+  } else if (remainingMinutes <= 180) {
+    sTime = 45;
   } else {
-    salesRiskScore = 15;
+    sTime = Math.min(100, Math.max(0, Math.round((1 - remainingMinutes / 360) * 100)));
   }
 
-  // 7. Base Waste Risk Score (0-100)
-  const rawBaseRisk = (urgencyScore * 0.50) + (stockPressureScore * 0.30) + (salesRiskScore * 0.20);
-  const wasteRiskScore = isExpired ? 100 : Math.min(100, Math.max(0, Math.round(rawBaseRisk)));
+  // 2. Volume Overhang Vector S_stock (w_q = 0.35)
+  const velRates = { LOW: 1.5, MEDIUM: 3.5, HIGH: 6.0 };
+  const nominalRate = velRates[input.salesVelocity] || 2.5;
+  const effectiveHours = Math.max(0.5, remainingHours);
+  const capacity = nominalRate * effectiveHours;
+  const sStock = Math.min(100, Math.max(0, Math.round((input.quantity / capacity) * 50)));
 
-  // Risk Level Classification (0–30 Low, 31–60 Medium, 61–80 High, 81–100 Critical)
-  let riskLevel: RiskLevel = 'Low';
-  if (wasteRiskScore >= 81) {
-    riskLevel = 'Critical';
-  } else if (wasteRiskScore >= 61) {
-    riskLevel = 'High';
-  } else if (wasteRiskScore >= 31) {
-    riskLevel = 'Medium';
-  } else {
-    riskLevel = 'Low';
-  }
+  // 3. Footfall Penalty Vector S_velocity (w_v = 0.25)
+  const velocityWeights = { LOW: 90, MEDIUM: 50, HIGH: 15 };
+  const sVelocity = velocityWeights[input.salesVelocity] ?? 50;
 
-  // 8. Recommend Discount & Price Based on Waste Risk Score
-  // Avoids unnecessary discounts when sufficient shelf life remains
-  let recDiscountPct = 0.10;
-  if (wasteRiskScore >= 81) {
-    recDiscountPct = 0.45; // 45% - 50% discount for critical risk
-  } else if (wasteRiskScore >= 61) {
-    recDiscountPct = 0.35; // 35% discount for high risk (e.g. ₹60 -> ₹35-₹39)
-  } else if (wasteRiskScore >= 31) {
-    recDiscountPct = 0.20; // 20% discount for medium risk
+  // Baseline Risk (excluding price discount)
+  const baselineRisk = (0.40 * sTime) + (0.35 * sStock) + (0.25 * sVelocity);
+
+  // Derive Recommended Markdown D_rec
+  let recDiscountPct = 0.20;
+  if (baselineRisk >= 75) {
+    recDiscountPct = 0.50; // 50% discount for critical/high risk
+  } else if (baselineRisk >= 50) {
+    recDiscountPct = 0.333; // 33.3% discount
+  } else if (baselineRisk >= 35) {
+    recDiscountPct = 0.25;
   } else {
-    recDiscountPct = 0.10; // 10% discount for low risk / plenty of shelf life
+    recDiscountPct = 0.20;
   }
 
   const recommendedPrice = Math.max(
@@ -169,86 +85,172 @@ export function evaluateWasteRisk(input: RiskInput): RiskEvaluationResult {
     Math.round(input.originalPrice * (1 - recDiscountPct))
   );
 
-  // 9. Dynamic Estimated Risk Recalculation
-  const selectedDiscountPct = Math.max(0, (input.originalPrice - input.selectedPrice) / input.originalPrice);
-  const discountDelta = selectedDiscountPct - recDiscountPct;
-  const estimatedRiskScore = isExpired ? 100 : Math.min(100, Math.max(0, Math.round(wasteRiskScore - (discountDelta * 50))));
+  // 4. Price Elasticity Credit Vector S_discount (w_d = 0.25)
+  const discountRatio = Math.max(0, (input.originalPrice - input.selectedPrice) / input.originalPrice);
+  const sDiscount = discountRatio * 100;
+  const discountCredit = 0.25 * sDiscount;
 
-  // Explanatory Pricing Feedback
-  let pricingExplanation = '';
-  let warningNotice: string | undefined;
+  const rawScore = baselineRisk - discountCredit;
+  const wasteRiskScore = Math.min(100, Math.max(0, Math.round(rawScore)));
 
-  if (input.selectedPrice === recommendedPrice) {
-    pricingExplanation = 'Recommended Price — Calibrated to maximize sales velocity while protecting merchant revenue.';
-  } else if (input.selectedPrice > recommendedPrice) {
-    pricingExplanation = `Selected price is ₹${input.selectedPrice}. Lower discounts may slow down clearance velocity as expiry nears.`;
-    warningNotice = `Price ₹${input.selectedPrice} is higher than recommended ₹${recommendedPrice}. Estimated waste risk: ${estimatedRiskScore}%.`;
+  // Risk level mapping
+  let riskLevel: RiskLevel = 'Low';
+  if (wasteRiskScore >= 80) {
+    riskLevel = 'Critical';
+  } else if (wasteRiskScore >= 65) {
+    riskLevel = 'High';
+  } else if (wasteRiskScore >= 40) {
+    riskLevel = 'Medium';
   } else {
-    pricingExplanation = `Selected price is ₹${input.selectedPrice}. A higher discount accelerates inventory clearance before expiry.`;
+    riskLevel = 'Low';
   }
 
-  // 10. Primary & Detail Explainable Reasons
-  let primaryReason = 'Sufficient shelf life remaining with balanced stock.';
-  if (isExpired) {
-    primaryReason = 'Product has reached its expiry date.';
-  } else if (wasteRiskScore >= 81) {
-    primaryReason = 'High stock remaining with limited shelf life.';
-  } else if (stockPressureScore >= 70) {
-    primaryReason = 'High inventory volume relative to current sales velocity.';
-  } else if (remainingLifePct <= 25) {
-    primaryReason = 'Product is approaching expiry date soon.';
-  } else if (effectiveVelocity < 2) {
-    primaryReason = 'Low sales velocity indicates clearance discount is recommended.';
-  }
-
+  // Concrete Explainable Reasons List (User Requirement)
   const reasons: string[] = [];
-  reasons.push(`Expires on ${expiryDateFormatted} (${expiryCountdownFormatted}).`);
-  reasons.push(`Only ${remainingLifePct}% of shelf life remains.`);
-  reasons.push(`${input.quantity} units remaining in stock.`);
-  if (effectiveVelocity < 2) {
-    reasons.push(`Sales velocity (${effectiveVelocity} units/hr) is slower than optimal for this stock volume.`);
+  reasons.push(`${input.quantity} units remaining in inventory`);
+
+  if (input.salesVelocity === 'LOW') {
+    reasons.push('Low sales velocity (< 2 units/hr)');
+  } else if (input.salesVelocity === 'MEDIUM') {
+    reasons.push('Moderate sales velocity (2–5 units/hr)');
   } else {
-    reasons.push(`Sales velocity is ${effectiveVelocity} units/hr (expected demand: ~${Math.round(expectedSalesUntilExpiry)} units).`);
+    reasons.push('High sales velocity (> 5 units/hr)');
   }
 
-  const explanation = `Waste Risk: ${wasteRiskScore}% (${riskLevel}) — ${primaryReason}`;
+  if (remainingMinutes <= 0) {
+    reasons.push('Selling deadline has expired');
+  } else if (remainingMinutes < 60) {
+    reasons.push(`Only ${timeRemainingFormatted} remaining before end-of-sale deadline`);
+  } else {
+    reasons.push(`${timeRemainingFormatted} remaining in selling horizon`);
+  }
+
+  if (input.selectedPrice > recommendedPrice) {
+    reasons.push(`Current price (₹${input.selectedPrice}) is relatively high compared to suggested (₹${recommendedPrice})`);
+  } else if (input.selectedPrice < recommendedPrice) {
+    reasons.push(`Deep discount (₹${input.selectedPrice}) significantly boosts clearance probability`);
+  } else {
+    reasons.push(`Price is calibrated to optimal market clearance benchmark (₹${recommendedPrice})`);
+  }
+
+  const explanation = `${input.quantity} units remain with ${timeRemainingFormatted} left under ${input.salesVelocity} footfall velocity.`;
+
+  let warningNotice: string | undefined;
+  if (input.selectedPrice > recommendedPrice) {
+    const diff = Math.round(((input.selectedPrice - recommendedPrice) / input.originalPrice) * 30);
+    warningNotice = `Selected price (₹${input.selectedPrice}) is higher than suggested (₹${recommendedPrice}). Higher price decreases estimated sell-through probability (Risk rises by +${Math.max(1, diff)} pts).`;
+  }
 
   return {
     wasteRiskScore,
-    wasteRiskPercentage: wasteRiskScore,
-    estimatedRiskScore,
     riskLevel,
-    urgencyLevel,
     recommendedPrice,
     recommendedDiscountPct: Math.round(recDiscountPct * 100),
     explanation,
-    pricingExplanation,
     reasons,
-    primaryReason,
     warningNotice,
-    manufacturingDateFormatted,
-    expiryDateFormatted,
-    expiryCountdownFormatted,
-    isExpired,
-    remainingLifeMinutes: remainingMinutes,
-    remainingLifeDays: remainingDays,
-    totalLifeDays,
-    remainingLifeFormatted: expiryCountdownFormatted,
-    timeRemainingFormatted: expiryCountdownFormatted,
-    remainingLifePct,
-    totalLifeMinutes,
+    timeRemainingMinutes: remainingMinutes,
+    timeRemainingFormatted,
     windowStatus,
-    urgencyScore,
-    stockPressureScore,
-    salesRiskScore,
-    expectedSalesUntilExpiry,
-    stockPressureRatio: Math.round(stockPressureRatio * 100) / 100,
     subScores: {
-      sTime: Math.round(urgencyScore * 0.50),
-      sStock: Math.round(stockPressureScore * 0.30),
-      sVelocity: Math.round(salesRiskScore * 0.20),
-      sDiscount: Math.round(discountDelta * 50),
-      baselineRisk: wasteRiskScore,
+      sTime,
+      sStock,
+      sVelocity,
+      sDiscount: Math.round(discountCredit),
+      baselineRisk: Math.round(baselineRisk),
     }
   };
 }
+
+export interface MultiFactorPricingInput {
+  originalPrice: number;
+  hoursUntilExpiry: number;
+  totalShelfLifeHours?: number; // default: 12
+  stockRemaining: number;
+  unitsSoldSoFar?: number; // default: 0
+}
+
+export interface MultiFactorPricingResult {
+  urgencyScore: number;
+  stockPressureScore: number;
+  velocityDeficitScore: number;
+  compositeScore: number;
+  wasteRiskScore: number;
+  riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical';
+  discountPct: number;
+  recommendedPrice: number;
+  badgeColorClass: string;
+  badgeLabel: string;
+}
+
+/**
+ * Multi-Factor Dynamic Pricing Engine
+ * Computes waste risk score and recommended clearance price based on:
+ * - Time Urgency Score (w_u = 0.45)
+ * - Stock Pressure Score (w_s = 0.30)
+ * - Velocity Deficit Score (w_v = 0.25)
+ */
+export function calculateRecommendedPrice(input: MultiFactorPricingInput): MultiFactorPricingResult {
+  const originalPrice = Math.max(5, input.originalPrice || 0);
+  const totalShelfLifeHours = input.totalShelfLifeHours && input.totalShelfLifeHours > 0 ? input.totalShelfLifeHours : 12;
+  const hoursUntilExpiry = Math.max(0.01, input.hoursUntilExpiry);
+  const stockRemaining = Math.max(1, input.stockRemaining);
+  const unitsSoldSoFar = Math.max(0, input.unitsSoldSoFar || 0);
+
+  // a. Time Urgency Score (0-100)
+  const urgencyScore = Math.min(100, Math.max(0, (1 - (hoursUntilExpiry / totalShelfLifeHours)) * 100));
+
+  // b. Stock Pressure Score (0-100)
+  const stockPressureScore = stockRemaining > 10 ? 90 : (stockRemaining >= 5 ? 60 : 30);
+
+  // c. Velocity Deficit Score (0-100)
+  const hoursElapsed = Math.max(0.5, totalShelfLifeHours - hoursUntilExpiry);
+  const requiredSalesRate = stockRemaining / Math.max(0.5, hoursUntilExpiry);
+  const actualSalesRate = unitsSoldSoFar / Math.max(0.5, hoursElapsed);
+  const velocityDeficitScore = requiredSalesRate > actualSalesRate
+    ? Math.min(100, (requiredSalesRate - actualSalesRate) * 30)
+    : 10;
+
+  // d. Combined Waste Risk Score (0-100)
+  const compositeScore = Math.min(100, Math.max(0, (urgencyScore * 0.45) + (stockPressureScore * 0.30) + (velocityDeficitScore * 0.25)));
+  const wasteRiskScore = Math.round(compositeScore);
+
+  // Discount Mapping & Risk Level
+  let riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical' = 'Low';
+  let discountPct = 20;
+  let badgeColorClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+
+  if (compositeScore <= 25) {
+    riskLevel = 'Low';
+    discountPct = 20;
+    badgeColorClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+  } else if (compositeScore <= 55) {
+    riskLevel = 'Moderate';
+    discountPct = 35;
+    badgeColorClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
+  } else if (compositeScore <= 80) {
+    riskLevel = 'High';
+    discountPct = 55;
+    badgeColorClass = 'bg-amber-100 text-amber-900 border-amber-300';
+  } else {
+    riskLevel = 'Critical';
+    discountPct = 70;
+    badgeColorClass = 'bg-rose-100 text-rose-800 border-rose-300';
+  }
+
+  const rawRecPrice = originalPrice * (1 - discountPct / 100);
+  const recommendedPrice = Math.max(Math.round(originalPrice * 0.20), Math.round(rawRecPrice));
+
+  return {
+    urgencyScore: Math.round(urgencyScore),
+    stockPressureScore: Math.round(stockPressureScore),
+    velocityDeficitScore: Math.round(velocityDeficitScore),
+    compositeScore: Math.round(compositeScore * 10) / 10,
+    wasteRiskScore,
+    riskLevel,
+    discountPct,
+    recommendedPrice,
+    badgeColorClass,
+    badgeLabel: `${riskLevel} (${wasteRiskScore})`,
+  };
+}

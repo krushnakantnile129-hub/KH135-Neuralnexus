@@ -1,3 +1,37 @@
+export type UserRole = 'CONSUMER' | 'SHOPKEEPER' | 'ADMIN';
+
+export type KycStatus = 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export interface MerchantKyc {
+  age: number;
+  dob: string;
+  state: string; // Must be Maharashtra
+  city: string;
+  streetAddress: string;
+  govtIdType: 'AADHAAR' | 'PAN' | 'PASSPORT';
+  govtIdNumber: string;
+  fssaiLicense: string;
+  gstin?: string;
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  ifscCode: string;
+  verifiedAt?: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+  bio?: string;
+  storeId?: string;
+  authProvider?: 'EMAIL' | 'GOOGLE';
+  kycStatus?: KycStatus;
+  kycData?: MerchantKyc;
+}
+
 export type StoreCategory = 
   | 'Bakery'
   | 'Prepared Food'
@@ -66,41 +100,30 @@ export interface Deal {
   publishedPrice: number;
   discountPct: number;
   
-  // Date & Expiry Information (DD Month YYYY + Optional Times)
-  manufacturingDate?: string; // YYYY-MM-DD
-  manufacturingTime?: string; // Optional e.g. 10:30
-  hasManufacturingTime?: boolean;
-  manufacturingDateFormatted?: string; // e.g. 11 September 2026
-  expiryDate?: string; // YYYY-MM-DD
-  expiryTime?: string; // Optional e.g. 18:00
-  hasExpiryTime?: boolean;
-  expiryDateFormatted?: string; // e.g. 11 September 2026
-  expiryCountdownFormatted?: string; // e.g. 4h 32m left or 1 day left
-  isExpired?: boolean;
-  
-  // Legacy / time support
+  // Time & Expiry Information
   prepDate?: string;
   prepTime?: string;
-  prepDateTimeIso?: string;
   bestBeforeDate?: string;
   bestBeforeTime?: string;
   expiryDateTime?: string;
   deadline: string; // ISO Selling Deadline
-  remainingLifeFormatted?: string;
-  remainingLifePct?: number;
   
   // Sales & Risk Information
   salesVelocity: SalesVelocity;
-  salesVelocityNumeric?: number; // e.g. 2 units/hour
   unitsSoldToday?: number;
   expectedDemand?: number;
   wasteRiskScore: number;
-  wasteRiskPercentage?: number; // e.g. 86
-  estimatedRiskScore?: number;
   riskLevel?: RiskLevel;
-  urgencyLevel?: 'Low' | 'Medium' | 'High' | 'Critical' | 'Expired';
   riskReasons?: string[];
   
+  // Legacy & dynamic property aliases for multi-region schema matching
+  shopName?: string;
+  title?: string;
+  locationName?: string;
+  discountedPrice?: number;
+  image?: string;
+  pickupWindow?: string;
+
   status: DealStatus;
   freshnessTag?: string;
   createdAt: string;
@@ -112,58 +135,25 @@ export interface RiskInput {
   quantity: number;
   originalPrice: number;
   selectedPrice: number;
-  deadlineIso?: string;
-  manufacturingDate?: string;
-  manufacturingTime?: string;
-  hasManufacturingTime?: boolean;
-  expiryDate?: string;
-  expiryTime?: string;
-  hasExpiryTime?: boolean;
+  deadlineIso: string;
   salesVelocity: SalesVelocity;
-  salesVelocityNumeric?: number;
   unitsSoldToday?: number;
   expectedDemand?: number;
   prepDate?: string;
-  prepTime?: string;
-  prepDateTimeIso?: string;
   category?: StoreCategory;
 }
 
 export interface RiskEvaluationResult {
   wasteRiskScore: number;
-  wasteRiskPercentage: number;
-  estimatedRiskScore: number;
   riskLevel: RiskLevel;
-  urgencyLevel: 'Low' | 'Medium' | 'High' | 'Critical' | 'Expired';
   recommendedPrice: number;
   recommendedDiscountPct: number;
   explanation: string;
-  pricingExplanation: string;
   reasons: string[];
-  primaryReason: string;
   warningNotice?: string;
-  
-  // Date & Remaining life metrics
-  manufacturingDateFormatted: string;
-  expiryDateFormatted: string;
-  expiryCountdownFormatted: string;
-  isExpired: boolean;
-  remainingLifeMinutes: number;
-  remainingLifeDays: number;
-  totalLifeDays: number;
-  remainingLifeFormatted: string;
-  timeRemainingFormatted?: string;
-  remainingLifePct: number;
-  totalLifeMinutes: number;
+  timeRemainingMinutes: number;
+  timeRemainingFormatted: string;
   windowStatus: 'safe' | 'warning' | 'critical' | 'expired';
-  
-  // Subscore breakdown
-  urgencyScore: number; // 50%
-  stockPressureScore: number; // 30%
-  salesRiskScore: number; // 20%
-  expectedSalesUntilExpiry: number;
-  stockPressureRatio: number;
-  
   subScores?: {
     sTime: number;
     sStock: number;
@@ -175,9 +165,6 @@ export interface RiskEvaluationResult {
 
 export interface MerchantMetrics {
   revenueRecovered: number;
-  diversionWeightKg: number;
-  avoidedCo2eKg: number;
-  rescueConversionRatio: number;
   dealsPublished: number;
   dealsSoldOut: number;
   totalUnitsRescued: number;
